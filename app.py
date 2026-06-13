@@ -126,6 +126,39 @@ class PerkApplication(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+# ===================== NETWORK MODEL =====================
+class Network(db.Model):
+    __tablename__ = 'vtmoo_networks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    provider_id = db.Column(db.String(80), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    display_order = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ===================== DATA PLAN MODEL =====================
+class DataPlan(db.Model):
+    __tablename__ = 'vtmoo_data_plans'
+
+    id = db.Column(db.Integer, primary_key=True)
+    supplier_plan_id = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    network = db.Column(db.String(20), nullable=False, index=True)
+    plan_name = db.Column(db.String(30), nullable=False)
+    plan_type = db.Column(db.String(50), nullable=False)
+    duration = db.Column(db.String(50), nullable=False)
+
+    wholesale_price = db.Column(db.Float, default=0.0)
+    regular_price = db.Column(db.Float, default=0.0)
+    student_price = db.Column(db.Float, default=0.0)
+
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # ===================== HELPERS =====================
 def get_or_create_user(telegram_id, username, name):
     with app.app_context():
@@ -480,22 +513,32 @@ def admin_welcome():
 @app.route('/admin/network')
 @admin_required
 def admin_network():
+    networks = Network.query.order_by(Network.display_order.asc().nullslast(), Network.id.asc()).all()
     return render_template(
         'admin/network.html',
         active_page='network',
         page_title='Network',
-        page_crumb='ADMIN / NETWORK'
+        page_crumb='ADMIN / NETWORK',
+        networks=networks
     )
 
 
 @app.route('/admin/data')
 @admin_required
 def admin_data():
+    plans = DataPlan.query.order_by(DataPlan.network.asc(), DataPlan.plan_name.asc()).all()
+    networks = Network.query.order_by(Network.display_order.asc().nullslast()).all()
+    plan_types = db.session.query(DataPlan.plan_type).distinct().order_by(DataPlan.plan_type).all()
+    plan_types = [pt[0] for pt in plan_types]
     return render_template(
         'admin/data.html',
         active_page='data',
         page_title='Data Plans',
-        page_crumb='ADMIN / DATA PLANS'
+        page_crumb='ADMIN / DATA PLANS',
+        plans=plans,
+        networks=networks,
+        plan_types=plan_types,
+        total_plans=len(plans)
     )
 
 
@@ -631,6 +674,194 @@ def apply_for_perks():
     )
 
     return jsonify(success=True, message="Application submitted! We'll review it shortly.")
+
+
+# ===================== ADMIN API — NETWORK =====================
+@app.route('/admin/api/network/add', methods=['POST'])
+@admin_required
+def admin_api_network_add():
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip().upper()
+    if not name:
+        return jsonify(success=False, message="Network name is required.")
+    if Network.query.filter_by(name=name).first():
+        return jsonify(success=False, message=f"Network '{name}' already exists.")
+    net = Network(
+        name=name,
+        provider_id=(data.get('provider_id') or '').strip() or None,
+        display_order=data.get('display_order') or None,
+        is_active=True
+    )
+    db.session.add(net)
+    db.session.commit()
+    return jsonify(success=True, message=f"Network '{name}' added successfully.")
+
+
+@app.route('/admin/api/network/update/<int:net_id>', methods=['POST'])
+@admin_required
+def admin_api_network_update(net_id):
+    net = Network.query.get_or_404(net_id)
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip().upper()
+    if not name:
+        return jsonify(success=False, message="Network name is required.")
+    # Check name conflict (excluding self)
+    existing = Network.query.filter(Network.name == name, Network.id != net_id).first()
+    if existing:
+        return jsonify(success=False, message=f"Another network named '{name}' already exists.")
+    net.name = name
+    net.provider_id = (data.get('provider_id') or '').strip() or None
+    net.display_order = data.get('display_order') or None
+    net.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify(success=True, message=f"Network updated.")
+
+
+@app.route('/admin/api/network/toggle/<int:net_id>', methods=['POST'])
+@admin_required
+def admin_api_network_toggle(net_id):
+    net = Network.query.get_or_404(net_id)
+    data = request.get_json(silent=True) or {}
+    net.is_active = bool(data.get('is_active', not net.is_active))
+    net.updated_at = datetime.utcnow()
+    db.session.commit()
+    state = "enabled" if net.is_active else "disabled"
+    return jsonify(success=True, message=f"{net.name} {state} successfully.")
+
+
+@app.route('/admin/api/network/bulk-toggle', methods=['POST'])
+@admin_required
+def admin_api_network_bulk_toggle():
+    data = request.get_json(silent=True) or {}
+    ids = data.get('ids', [])
+    action = data.get('action', '')  # 'enable' or 'disable'
+    if not ids or action not in ('enable', 'disable'):
+        return jsonify(success=False, message="Invalid request.")
+    is_active = (action == 'enable')
+    Network.query.filter(Network.id.in_(ids)).update({'is_active': is_active}, synchronize_session=False)
+    db.session.commit()
+    return jsonify(success=True, message=f"{len(ids)} network(s) {action}d.")
+
+
+# ===================== ADMIN API — DATA PLANS =====================
+def _parse_price(raw):
+    """Convert supplier price strings like '1,350.00' to float."""
+    try:
+        return float(str(raw).replace(',', '').strip())
+    except (ValueError, TypeError):
+        return 0.0
+
+
+@app.route('/admin/api/plans/import', methods=['POST'])
+@admin_required
+def admin_api_plans_import():
+    data = request.get_json(silent=True) or {}
+    if data.get('status') != 'success':
+        return jsonify(success=False, message="JSON status is not 'success'. Check the JSON.")
+    plans = data.get('plan', [])
+    if not plans:
+        return jsonify(success=False, message="No plans found in JSON.")
+
+    imported = updated = errors = 0
+
+    for p in plans:
+        try:
+            supplier_id = str(p.get('plan_id', '')).strip()
+            if not supplier_id:
+                errors += 1
+                continue
+
+            wholesale = _parse_price(p.get('amount', 0))
+            network = str(p.get('network', '')).strip().upper()
+            plan_name = str(p.get('plan_name', '')).strip()
+            plan_type = str(p.get('plan_type', '')).strip()
+            duration = str(p.get('plan_day', '')).strip()
+
+            existing = DataPlan.query.filter_by(supplier_plan_id=supplier_id).first()
+            if existing:
+                # Only update supplier fields — do NOT touch regular_price/student_price/is_active
+                changed = False
+                if existing.wholesale_price != wholesale:
+                    existing.wholesale_price = wholesale
+                    changed = True
+                if existing.network != network:
+                    existing.network = network
+                    changed = True
+                if existing.plan_name != plan_name:
+                    existing.plan_name = plan_name
+                    changed = True
+                if existing.plan_type != plan_type:
+                    existing.plan_type = plan_type
+                    changed = True
+                if existing.duration != duration:
+                    existing.duration = duration
+                    changed = True
+                if changed:
+                    existing.updated_at = datetime.utcnow()
+                    updated += 1
+            else:
+                # New plan — set regular & student = wholesale (0 margin until admin sets it)
+                new_plan = DataPlan(
+                    supplier_plan_id=supplier_id,
+                    network=network,
+                    plan_name=plan_name,
+                    plan_type=plan_type,
+                    duration=duration,
+                    wholesale_price=wholesale,
+                    regular_price=wholesale,
+                    student_price=wholesale,
+                    is_active=True
+                )
+                db.session.add(new_plan)
+                imported += 1
+        except Exception as e:
+            app.logger.warning(f"Plan import error: {e}")
+            errors += 1
+
+    db.session.commit()
+    return jsonify(success=True, imported=imported, updated=updated, errors=errors)
+
+
+@app.route('/admin/api/plans/update/<int:plan_id>', methods=['POST'])
+@admin_required
+def admin_api_plans_update(plan_id):
+    plan = DataPlan.query.get_or_404(plan_id)
+    data = request.get_json(silent=True) or {}
+
+    try:
+        plan.regular_price = float(data.get('regular_price', plan.regular_price))
+        plan.student_price = float(data.get('student_price', plan.student_price))
+        plan.is_active = bool(data.get('is_active', plan.is_active))
+        plan.updated_at = datetime.utcnow()
+        db.session.commit()
+        return jsonify(success=True, message="Plan updated.")
+    except Exception as e:
+        return jsonify(success=False, message=str(e))
+
+
+@app.route('/admin/api/plans/recalculate', methods=['POST'])
+@admin_required
+def admin_api_plans_recalculate():
+    data = request.get_json(silent=True) or {}
+    regular_margin = float(data.get('regular_margin', 0))
+    student_discount = float(data.get('student_discount', 0))
+    target = data.get('target', 'all')
+    plan_ids = data.get('plan_ids')  # list of ints, or None
+
+    if target == 'filtered' and plan_ids:
+        plans = DataPlan.query.filter(DataPlan.id.in_(plan_ids)).all()
+    else:
+        plans = DataPlan.query.all()
+
+    updated = 0
+    for plan in plans:
+        plan.regular_price = round(plan.wholesale_price + regular_margin, 2)
+        plan.student_price = round(plan.regular_price - student_discount, 2)
+        plan.updated_at = datetime.utcnow()
+        updated += 1
+
+    db.session.commit()
+    return jsonify(success=True, updated=updated)
 
 
 # ===================== FLASK SETUP =====================
