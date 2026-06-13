@@ -4,6 +4,7 @@ import re
 import threading
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import telebot
@@ -527,8 +528,23 @@ def apply_for_perks():
 
 
 # ===================== FLASK SETUP =====================
+def run_migrations():
+    """Add any columns that may be missing from tables created before this update."""
+    migrations = [
+        "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS school VARCHAR(150)",
+    ]
+    with db.engine.connect() as conn:
+        for stmt in migrations:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception as e:
+                app.logger.warning(f"Migration skipped/failed: {stmt} -> {e}")
+
+
 with app.app_context():
     db.create_all()
+    run_migrations()
     print("✅ vtmoo Database tables created successfully!")
 
 
