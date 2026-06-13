@@ -1,0 +1,233 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<style>
+  /* ── STAT GRID ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .stat-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: #f4f4f2;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stat-icon svg { width: 17px; height: 17px; stroke: #0a0a0a; }
+  .stat-value {
+    font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.01em;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 10.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #999999;
+  }
+  .stat-delta {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 12.5px;
+  }
+  .stat-delta.positive { color: #1ca64c; }
+  .stat-delta.neutral { color: #999999; }
+
+  /* ── PANELS ── */
+  .panel-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+  }
+  .panel {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
+    padding: 22px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .panel-title {
+    font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: -0.01em;
+  }
+  .panel-link {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 12.5px;
+    color: #0a0a0a; text-decoration: none; letter-spacing: 0.02em;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .panel-link svg { width: 13px; height: 13px; stroke: currentColor; }
+
+  /* activity rows */
+  .activity-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .activity-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .activity-icon {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #f4f4f2; border: 1px solid rgba(0,0,0,0.06);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .activity-icon svg { width: 15px; height: 15px; stroke: #0a0a0a; }
+  .activity-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .activity-title { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 13.5px; }
+  .activity-sub {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 12px; color: #999999;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .activity-time {
+    font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 10.5px;
+    letter-spacing: 0.06em; color: #b0b0b0; flex-shrink: 0;
+  }
+  .activity-empty {
+    text-align: center; padding: 30px 0;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 13px; color: #b0b0b0;
+  }
+
+  /* quick links */
+  .quick-link-list { display: flex; flex-direction: column; gap: 10px; }
+  .quick-link {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    background: #f4f4f2; border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 12px; text-decoration: none; color: #0a0a0a;
+    transition: all 0.18s ease;
+  }
+  .quick-link:hover { background: #ececea; transform: translateX(2px); }
+  .quick-link-icon {
+    width: 36px; height: 36px; border-radius: 10px; background: #0a0a0a;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .quick-link-icon svg { width: 16px; height: 16px; stroke: #f5f5f5; }
+  .quick-link-text { display: flex; flex-direction: column; gap: 1px; }
+  .quick-link-title { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 13.5px; }
+  .quick-link-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 12px; color: #999999; }
+
+  @media (max-width: 1100px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .panel-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .stat-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- STAT GRID -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4" /><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
+      </svg>
+    </div>
+    <div class="stat-value">{{ total_users }}</div>
+    <div class="stat-label">Total Users</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" />
+      </svg>
+    </div>
+    <div class="stat-value">₦{{ "{:,.2f}".format(total_balance or 0) }}</div>
+    <div class="stat-label">Total Wallet Balance</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" /><path d="M12 6v12" />
+      </svg>
+    </div>
+    <div class="stat-value">{{ pending_perks }}</div>
+    <div class="stat-label">Pending Perk Apps</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
+      </svg>
+    </div>
+    <div class="stat-value">{{ unread_notifications_total }}</div>
+    <div class="stat-label">Unread Notifications</div>
+  </div>
+</div>
+
+<!-- PANELS -->
+<div class="panel-grid">
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">Recent Sign-ups</span>
+    </div>
+
+    {% if recent_users and recent_users|length > 0 %}
+      {% for u in recent_users %}
+      <div class="activity-row">
+        <div class="activity-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4" /><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
+          </svg>
+        </div>
+        <div class="activity-info">
+          <span class="activity-title">{{ u.name or u.username or "Unnamed User" }}</span>
+          <span class="activity-sub">@{{ u.username or "no_username" }} &middot; TG {{ u.telegram_id }}</span>
+        </div>
+        <span class="activity-time">{{ u.created_at.strftime('%d %b') if u.created_at else "" }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="activity-empty">No users yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">Quick Actions</span>
+    </div>
+    <div class="quick-link-list">
+      <a class="quick-link" href="{{ url_for('admin_network') }}">
+        <div class="quick-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+          </svg>
+        </div>
+        <div class="quick-link-text">
+          <span class="quick-link-title">Manage Networks</span>
+          <span class="quick-link-sub">Enable, disable, or edit providers</span>
+        </div>
+      </a>
+      <a class="quick-link" href="{{ url_for('admin_data') }}">
+        <div class="quick-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="10" rx="2" /><path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01" />
+          </svg>
+        </div>
+        <div class="quick-link-text">
+          <span class="quick-link-title">Data Plans</span>
+          <span class="quick-link-sub">Pricing, margins &amp; sync</span>
+        </div>
+      </a>
+      <a class="quick-link" href="{{ url_for('admin_perks') }}">
+        <div class="quick-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" /><path d="M12 6v12" />
+          </svg>
+        </div>
+        <div class="quick-link-text">
+          <span class="quick-link-title">Review Perk Applications</span>
+          <span class="quick-link-sub">{{ pending_perks }} pending review</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
