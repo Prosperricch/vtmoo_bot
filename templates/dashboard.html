@@ -529,7 +529,7 @@
         <span class="hello">Welcome back</span>
         <span class="username">{{ user.name or user.username or "User" }}</span>
       </div>
-      <div class="icon-btn" id="notifBtn">
+      <div class="icon-btn" id="notifBtn" onclick="goTo('/notifications')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 01-3.46 0" />
@@ -563,7 +563,7 @@
     <!-- QUICK ACTIONS -->
     <div class="section-head">Quick Actions</div>
     <div class="quick-actions">
-      <div class="action-card" id="buyDataCard">
+      <div class="action-card" id="buyDataCard" onclick="goTo('/data')">
         <div class="action-icon data">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="7" width="20" height="10" rx="2" />
@@ -577,7 +577,7 @@
         </div>
       </div>
 
-      <div class="action-card" id="perksCard">
+      <div class="action-card" id="perksCard" onclick="goTo('/perks')">
         <div class="action-icon perks">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
