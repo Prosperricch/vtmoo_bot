@@ -177,7 +177,7 @@ def dashboard():
 
     try:
         return render_template(
-            'dashboardd.html',
+            'dashboard.html',
             user=user,
             recent_transactions=recent_transactions
         )
