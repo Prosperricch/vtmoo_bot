@@ -109,7 +109,10 @@ def get_or_create_user(telegram_id, username, name):
 def send_dashboard_link(telegram_id):
     dashboard_url = f"{PUBLIC_URL}/dashboard?telegram_id={telegram_id}"
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("📊 Open Dashboard", url=dashboard_url))
+    markup.add(types.InlineKeyboardButton(
+        "📊 Open Dashboard",
+        web_app=types.WebAppInfo(url=dashboard_url)
+    ))
     bot.send_message(telegram_id, "Welcome back! Tap below to view your dashboard:", reply_markup=markup)
 
 
@@ -156,12 +159,61 @@ def help_command(message):
 
 
 # ===================== FLASK ROUTES =====================
+LOADER_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VTMoo — Loading...</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      font-family: sans-serif;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <p id="msg">Loading dashboard...</p>
+  <script>
+    (function () {
+      try {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if (tg) {
+          tg.ready();
+          tg.expand();
+          const tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
+          if (tgUser && tgUser.id) {
+            window.location.replace('/dashboard?telegram_id=' + tgUser.id);
+            return;
+          }
+        }
+        document.getElementById('msg').textContent =
+          'Unable to load Telegram user data. Please open this from the bot inside Telegram.';
+      } catch (e) {
+        document.getElementById('msg').textContent = 'Error: ' + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>
+"""
+
+
 @app.route('/dashboard')
 def dashboard():
     telegram_id = request.args.get('telegram_id')
 
     if not telegram_id:
-        return "Missing telegram_id", 400
+        # No telegram_id yet — serve loader page that pulls it from Telegram WebApp SDK
+        return LOADER_HTML
 
     try:
         telegram_id = int(telegram_id)
