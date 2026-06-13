@@ -261,7 +261,7 @@ LOADER_HTML = """
   </style>
 </head>
 <body>
-  <p id="msg">Loading dashboard...</p>
+  <p id="msg">Loading...</p>
   <script>
     (function () {
       try {
@@ -415,6 +415,20 @@ def perks():
         return f"Template error: {e}", 500
 
 
+@app.route('/data')
+def data_page():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
+
+    try:
+        return render_template('data.html', user=user)
+    except Exception as e:
+        app.logger.exception("Data render error")
+        return f"Template error: {e}", 500
+
+
 # ===================== API ROUTES =====================
 @app.route('/api/notifications/read', methods=['POST'])
 def mark_notification_read():
@@ -525,6 +539,63 @@ def apply_for_perks():
     )
 
     return jsonify(success=True, message="Application submitted! We'll review it shortly.")
+
+
+@app.route('/api/data/purchase', methods=['POST'])
+def purchase_data():
+    data = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+    network = (data.get('network') or '').strip()
+    plan_name = (data.get('plan_name') or '').strip()
+    amount = data.get('amount')
+    phone = (data.get('phone') or '').strip()
+    pin = (data.get('pin') or '').strip()
+
+    if telegram_id is None:
+        return jsonify(success=False, message="Missing telegram_id"), 400
+
+    if not network or not plan_name or amount is None or not phone:
+        return jsonify(success=False, message="Please fill in all fields."), 400
+
+    if not re.match(r'^\d{4}$', pin):
+        return jsonify(success=False, message="PIN must be exactly 4 digits."), 400
+
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return jsonify(success=False, message="Invalid amount."), 400
+
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if not user:
+        return jsonify(success=False, message="User not found"), 404
+
+    if not user.check_pin(pin):
+        return jsonify(success=False, message="Incorrect transaction PIN."), 400
+
+    if (user.balance or 0) < amount:
+        return jsonify(success=False, message="Insufficient wallet balance."), 400
+
+    user.balance = round((user.balance or 0) - amount, 2)
+    user.add_transaction(
+        amount=-amount,
+        transaction_type="data",
+        description=f"{network} — {plan_name}",
+        status="success"
+    )
+    db.session.commit()
+
+    create_notification(
+        telegram_id,
+        "Data Purchase Successful",
+        f"{plan_name} was delivered to {phone} on {network}.",
+        ntype="success"
+    )
+
+    return jsonify(
+        success=True,
+        message="Data purchase successful!",
+        balance=user.balance
+    )
 
 
 # ===================== FLASK SETUP =====================
