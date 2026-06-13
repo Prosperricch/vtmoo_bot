@@ -258,6 +258,24 @@ def admin_required(view_func):
     return wrapped
 
 
+# Maps network names (as stored in vtmoo_networks.name) to the static image
+# files under /static. Used to render the data page network carousel.
+NETWORK_IMAGES = {
+    'MTN': '3d-mtn.jpg',
+    'AIRTEL': '3d-airtel.jpg',
+    'GLO': '3d-glo.jpg',
+    '9MOBILE': '3d-9mobile.jpg',
+}
+
+# Human-friendly labels for plan_type tabs on the data page.
+PLAN_TYPE_LABELS = {
+    'sme': 'SME',
+    'gifting': 'Gifting',
+    'corporate': 'Corporate',
+    'awoof': 'Awoof',
+}
+
+
 # ===================== BOT COMMANDS =====================
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -457,6 +475,70 @@ def perks():
         )
     except Exception as e:
         app.logger.exception("Perks render error")
+        return f"Template error: {e}", 500
+
+
+@app.route('/data')
+def data_page():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
+
+    # Only show active networks, in their configured display order
+    networks = Network.query.filter_by(is_active=True).order_by(
+        Network.display_order.asc().nullslast(), Network.id.asc()
+    ).all()
+
+    network_list = [{
+        "name": n.name,
+        "image": NETWORK_IMAGES.get(n.name.upper(), '3d-mtn.jpg')
+    } for n in networks]
+
+    # Only show active plans
+    plans = DataPlan.query.filter_by(is_active=True).order_by(
+        DataPlan.plan_type.asc(), DataPlan.network.asc(), DataPlan.plan_name.asc()
+    ).all()
+
+    plan_types_seen = []
+    data_plans = {}
+
+    for p in plans:
+        ptype = (p.plan_type or '').strip().lower()
+        if not ptype:
+            continue
+
+        if ptype not in plan_types_seen:
+            plan_types_seen.append(ptype)
+
+        data_plans.setdefault(ptype, {}).setdefault(p.network, [])
+
+        # Students (users who have applied for/have a school on file) get
+        # student pricing, everyone else gets regular pricing.
+        price = p.student_price if user.school else p.regular_price
+
+        label = f"{p.plan_name} - {p.duration} - ₦{price:,.0f}"
+
+        data_plans[ptype][p.network].append({
+            "value": p.supplier_plan_id,
+            "label": label
+        })
+
+    plan_types = [
+        {"value": pt, "label": PLAN_TYPE_LABELS.get(pt, pt.title())}
+        for pt in plan_types_seen
+    ]
+
+    try:
+        return render_template(
+            'data.html',
+            user=user,
+            networks=network_list,
+            plan_types=plan_types,
+            data_plans=data_plans
+        )
+    except Exception as e:
+        app.logger.exception("Data page render error")
         return f"Template error: {e}", 500
 
 
@@ -674,6 +756,69 @@ def apply_for_perks():
     )
 
     return jsonify(success=True, message="Application submitted! We'll review it shortly.")
+
+
+@app.route('/api/data/purchase', methods=['POST'])
+def purchase_data():
+    data = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+    network = (data.get('network') or '').strip().upper()
+    plan_value = (data.get('plan_value') or '').strip()
+    phone = (data.get('phone') or '').strip()
+    pin = (data.get('pin') or '').strip()
+    bypass = bool(data.get('bypass'))
+
+    if telegram_id is None:
+        return jsonify(success=False, message="Missing telegram_id"), 400
+
+    if not bypass and not re.match(r'^0\d{10}$', phone):
+        return jsonify(success=False, message="Invalid phone number."), 400
+
+    if not re.match(r'^\d{4}$', pin):
+        return jsonify(success=False, message="PIN must be exactly 4 digits."), 400
+
+    if not network or not plan_value:
+        return jsonify(success=False, message="Please select a network and a data plan."), 400
+
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if not user:
+        return jsonify(success=False, message="User not found"), 404
+
+    if not user.check_pin(pin):
+        return jsonify(success=False, message="Incorrect transaction PIN."), 400
+
+    plan = DataPlan.query.filter_by(
+        supplier_plan_id=plan_value, network=network, is_active=True
+    ).first()
+    if not plan:
+        return jsonify(success=False, message="Selected plan is no longer available."), 400
+
+    price = plan.student_price if user.school else plan.regular_price
+
+    if user.balance < price:
+        return jsonify(success=False, message="Insufficient balance. Please fund your wallet."), 400
+
+    # TODO: integrate with the actual data top-up provider here using
+    # plan.supplier_plan_id and the recipient phone number. If the provider
+    # call fails, do not deduct the user's balance / return an error instead.
+
+    user.balance = round(user.balance - price, 2)
+    db.session.commit()
+
+    user.add_transaction(
+        amount=-price,
+        transaction_type="data_purchase",
+        description=f"{network} {plan.plan_name} ({plan.duration}) data for {phone}"
+    )
+
+    create_notification(
+        telegram_id,
+        "Data purchase successful",
+        f"You purchased {plan.plan_name} ({plan.duration}) {network} data for {phone}.",
+        ntype="success"
+    )
+
+    return jsonify(success=True, message="Data purchase successful!")
 
 
 # ===================== ADMIN API — NETWORK =====================
