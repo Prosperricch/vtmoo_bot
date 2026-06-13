@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -18,11 +17,9 @@
       margin: 0;
       padding: 0;
     }
-
     html {
       scroll-behavior: smooth;
     }
-
     body {
       width: 100%;
       min-height: 100vh;
@@ -33,7 +30,6 @@
       background: #ffffff;
       color: #000000;
     }
-
     /* ── COW PATTERN BG ── */
     #bg-canvas-wrapper {
       position: fixed;
@@ -46,7 +42,6 @@
       pointer-events: none;
       overflow: hidden;
     }
-
     #bg-canvas {
       position: absolute;
       top: 0;
@@ -56,7 +51,6 @@
       display: block;
       object-fit: cover;
     }
-
     #bg-overlay {
       position: fixed;
       inset: 0;
@@ -64,7 +58,6 @@
       pointer-events: none;
       background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 75%);
     }
-
     /* ── PAGE FRAME ── */
     .app {
       position: relative;
@@ -76,12 +69,10 @@
       display: flex;
       flex-direction: column;
     }
-
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(14px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     /* ── TOP BAR ── */
     .topbar {
       display: flex;
@@ -91,7 +82,6 @@
       opacity: 0;
       animation: fadeUp 0.6s ease 0.05s forwards;
     }
-
     .icon-btn {
       width: 44px;
       height: 44px;
@@ -108,18 +98,15 @@
       -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
     }
-
     .icon-btn:hover {
       background: rgba(0, 0, 0, 0.12);
       border-color: rgba(0, 0, 0, 0.25);
     }
-
     .icon-btn svg {
       width: 20px;
       height: 20px;
       stroke: #1a1a1a;
     }
-
     .topbar-title {
       font-family: 'Barlow', sans-serif;
       font-weight: 800;
@@ -127,7 +114,6 @@
       letter-spacing: -0.01em;
       color: #000000;
     }
-
     /* ── SECTION HEADERS ── */
     .section-head {
       font-family: 'Barlow', sans-serif;
@@ -140,11 +126,9 @@
       opacity: 0;
       animation: fadeUp 0.6s ease 0.12s forwards;
     }
-
     .section-head.spaced {
       margin-top: 24px;
     }
-
     /* ── NETWORK CAROUSEL ── */
     .carousel-wrap {
       position: relative;
@@ -152,7 +136,6 @@
       opacity: 0;
       animation: fadeUp 0.6s ease 0.18s forwards;
     }
-
     .carousel {
       display: flex;
       gap: 16px;
@@ -162,17 +145,14 @@
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
     }
-
     .carousel::-webkit-scrollbar {
       display: none;
     }
-
     .carousel::before,
     .carousel::after {
       content: '';
       flex: 0 0 calc(50% - 60px);
     }
-
     .network-card {
       flex: 0 0 96px;
       scroll-snap-align: center;
@@ -185,12 +165,10 @@
       transform: scale(0.8);
       opacity: 0.4;
     }
-
     .network-card.active {
       transform: scale(1);
       opacity: 1;
     }
-
     .network-logo {
       width: 96px;
       height: 96px;
@@ -210,19 +188,29 @@
       text-transform: uppercase;
       color: #999999;
     }
-
     .network-logo img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
-
     .network-card.active .network-logo {
       border-color: rgba(0, 0, 0, 0.35);
       box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
     }
-
+    .network-name {
+      margin-top: 8px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #888888;
+      transition: color 0.3s ease;
+    }
+    .network-card.active .network-name {
+      color: #000000;
+    }
     .carousel-dots {
       display: flex;
       justify-content: center;
@@ -231,7 +219,6 @@
       opacity: 0;
       animation: fadeUp 0.6s ease 0.22s forwards;
     }
-
     .carousel-dot {
       width: 7px;
       height: 7px;
@@ -239,13 +226,11 @@
       background: rgba(0, 0, 0, 0.15);
       transition: all 0.3s ease;
     }
-
     .carousel-dot.active {
       background: #000000;
       width: 18px;
       border-radius: 4px;
     }
-
     /* ── FORM CARD ── */
     .form-card {
       border-radius: 20px;
@@ -260,7 +245,6 @@
       flex-direction: column;
       gap: 18px;
     }
-
     .field-label {
       font-family: 'Barlow', sans-serif;
       font-weight: 700;
@@ -271,14 +255,12 @@
       margin-bottom: 8px;
       display: block;
     }
-
     /* ── PLAN TYPE TABS ── */
     .plan-tabs {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
     }
-
     .plan-tab {
       flex: 1;
       min-width: 0;
@@ -297,18 +279,15 @@
       -webkit-tap-highlight-color: transparent;
       white-space: nowrap;
     }
-
     .plan-tab:hover {
       background: rgba(0, 0, 0, 0.08);
     }
-
     .plan-tab.selected {
       background: #000000;
       color: #ffffff;
       border-color: #000000;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
     }
-
     @media (max-width: 380px) {
       .plan-tabs {
         flex-wrap: wrap;
@@ -317,12 +296,10 @@
         flex: 0 0 calc(50% - 4px);
       }
     }
-
     /* ── SELECT ── */
     .select-wrap {
       position: relative;
     }
-
     .select-wrap select {
       width: 100%;
       appearance: none;
@@ -340,16 +317,13 @@
       outline: none;
       transition: border-color 0.2s ease;
     }
-
     .select-wrap select:focus {
       border-color: rgba(0, 0, 0, 0.4);
     }
-
     .select-wrap select:disabled {
       color: #aaaaaa;
       cursor: not-allowed;
     }
-
     .select-wrap svg {
       position: absolute;
       right: 14px;
@@ -360,7 +334,6 @@
       stroke: #888888;
       pointer-events: none;
     }
-
     /* ── TEXT INPUT ── */
     .text-input {
       width: 100%;
@@ -375,16 +348,13 @@
       outline: none;
       transition: border-color 0.2s ease;
     }
-
     .text-input:focus {
       border-color: rgba(0, 0, 0, 0.4);
     }
-
     .text-input::placeholder {
       color: #c4c4c4;
       font-weight: 500;
     }
-
     /* remove number spinners + letter spacing for PIN */
     .text-input[type=number]::-webkit-outer-spin-button,
     .text-input[type=number]::-webkit-inner-spin-button {
@@ -394,13 +364,11 @@
     .text-input[type=number] {
       -moz-appearance: textfield;
     }
-
     .pin-input {
       letter-spacing: 0.6em;
       text-align: center;
       font-size: 20px;
     }
-
     /* ── TOGGLE ROW ── */
     .toggle-row {
       display: flex;
@@ -408,20 +376,17 @@
       justify-content: space-between;
       gap: 12px;
     }
-
     .toggle-text {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
-
     .toggle-title {
       font-family: 'Barlow', sans-serif;
       font-weight: 700;
       font-size: 13px;
       color: #000000;
     }
-
     .toggle-sub {
       font-family: 'Barlow Condensed', sans-serif;
       font-weight: 400;
@@ -430,20 +395,17 @@
       text-transform: uppercase;
       color: #999999;
     }
-
     .switch {
       position: relative;
       width: 46px;
       height: 26px;
       flex-shrink: 0;
     }
-
     .switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
-
     .switch-slider {
       position: absolute;
       cursor: pointer;
@@ -452,7 +414,6 @@
       border-radius: 999px;
       transition: background 0.25s ease;
     }
-
     .switch-slider::before {
       content: '';
       position: absolute;
@@ -465,15 +426,12 @@
       transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     }
-
     .switch input:checked + .switch-slider {
       background: #000000;
     }
-
     .switch input:checked + .switch-slider::before {
       transform: translateX(20px);
     }
-
     /* ── SUBMIT ── */
     .submit-btn {
       width: 100%;
@@ -497,39 +455,201 @@
       animation: fadeUp 0.6s ease 0.36s forwards;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
     }
-
     .submit-btn:hover {
       transform: translateY(-2px);
       background: #1a1a1a;
     }
-
     .submit-btn:active {
       transform: translateY(0) scale(0.98);
     }
-
     .submit-btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
       transform: none;
     }
-
     .submit-btn svg {
       width: 18px;
       height: 18px;
       stroke: #ffffff;
     }
+    /* ── LOADING SPINNER ── */
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .submit-btn.loading .btn-text,
+    .submit-btn.loading .btn-icon {
+      display: none;
+    }
+    .submit-btn.loading .spinner {
+      display: block;
+    }
+    /* ── TOAST NOTIFICATION ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #000000;
+      color: #ffffff;
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      z-index: 1000;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success {
+      background: #000000;
+    }
+    .toast.error {
+      background: #cc0000;
+    }
+    /* ── CONFIRMATION MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.show {
+      display: flex;
+      opacity: 1;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      transform: scale(0.9) translateY(20px);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-overlay.show .modal-card {
+      transform: scale(1) translateY(0);
+    }
+    .modal-icon {
+      width: 56px;
+      height: 56px;
+      background: #000000;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .modal-icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: #ffffff;
+      stroke-width: 2;
+    }
+    .modal-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: #000000;
+      margin-bottom: 8px;
+    }
+    .modal-body {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 14px;
+      color: #666666;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .modal-details {
+      background: rgba(0,0,0,0.04);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .modal-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-family: 'Barlow', sans-serif;
+      font-size: 13px;
+    }
+    .modal-detail-row:not(:last-child) {
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .modal-detail-label {
+      color: #888888;
+      font-weight: 500;
+    }
+    .modal-detail-value {
+      color: #000000;
+      font-weight: 700;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .modal-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modal-btn-secondary {
+      background: rgba(0,0,0,0.06);
+      color: #000000;
+    }
+    .modal-btn-secondary:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    .modal-btn-primary {
+      background: #000000;
+      color: #ffffff;
+    }
+    .modal-btn-primary:hover {
+      background: #1a1a1a;
+    }
   </style>
 </head>
-
 <body>
-
   <div id="bg-canvas-wrapper">
     <canvas id="bg-canvas"></canvas>
   </div>
   <div id="bg-overlay"></div>
-
   <div class="app">
-
     <!-- TOP BAR -->
     <div class="topbar">
       <div class="icon-btn" id="backBtn">
@@ -539,43 +659,33 @@
       </div>
       <div class="topbar-title">Buy Data</div>
     </div>
-
     <!-- SELECT NETWORK -->
     <div class="section-head">Select Network</div>
     <div class="carousel-wrap">
       <div class="carousel" id="networkCarousel">
-        <div class="network-card" data-network="MTN">
+        {% for network in networks %}
+        <div class="network-card" data-network="{{ network.name }}">
           <div class="network-logo">
-            <img src="mtn.png" alt="MTN" onerror="this.style.display='none'; this.parentElement.textContent='MTN';" />
+            <img src="{{ url_for('static', filename=network.image) }}" alt="{{ network.name }}" 
+                 onerror="this.style.display='none'; this.parentElement.textContent='{{ network.name }}';" />
           </div>
+          <div class="network-name">{{ network.name }}</div>
         </div>
-        <div class="network-card" data-network="Glo">
-          <div class="network-logo">
-            <img src="glo.png" alt="Glo" onerror="this.style.display='none'; this.parentElement.textContent='Glo';" />
-          </div>
-        </div>
-        <div class="network-card" data-network="Airtel">
-          <div class="network-logo">
-            <img src="airtel.png" alt="Airtel" onerror="this.style.display='none'; this.parentElement.textContent='Airtel';" />
-          </div>
-        </div>
+        {% endfor %}
       </div>
     </div>
     <div class="carousel-dots" id="carouselDots"></div>
-
     <!-- FORM -->
     <div class="form-card">
-
       <!-- PLAN TYPE -->
       <div>
         <span class="field-label">Plan Type</span>
         <div class="plan-tabs" id="planTabs">
-          <div class="plan-tab selected" data-plan="sme">SME</div>
-          <div class="plan-tab" data-plan="corporate">Corporate Gifting</div>
-          <div class="plan-tab" data-plan="gifting">Gifting</div>
+          {% for plan in plan_types %}
+          <div class="plan-tab{% if loop.first %} selected{% endif %}" data-plan="{{ plan.value }}">{{ plan.label }}</div>
+          {% endfor %}
         </div>
       </div>
-
       <!-- DATA PLAN -->
       <div>
         <span class="field-label">Data Plan</span>
@@ -588,13 +698,11 @@
           </svg>
         </div>
       </div>
-
       <!-- PHONE NUMBER -->
       <div>
         <span class="field-label">Phone Number</span>
         <input type="tel" class="text-input" id="phoneInput" placeholder="08012345678" maxlength="11" inputmode="numeric" />
       </div>
-
       <!-- BYPASS TOGGLE -->
       <div class="toggle-row">
         <div class="toggle-text">
@@ -606,32 +714,50 @@
           <span class="switch-slider"></span>
         </label>
       </div>
-
       <!-- TRANSACTION PIN -->
       <div>
         <span class="field-label">Transaction PIN</span>
         <input type="password" class="text-input pin-input" id="pinInput" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
-
     </div>
-
     <!-- SUBMIT -->
     <button class="submit-btn" id="purchaseBtn" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="7" width="20" height="10" rx="2" />
         <path d="M6 11h.01M10 11h.01M14 11h.01" />
       </svg>
-      Purchase Data
+      <span class="btn-text">Purchase Data</span>
+      <div class="spinner"></div>
     </button>
-
   </div>
+
+  <!-- CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-card">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="10" rx="2" />
+          <path d="M6 11h.01M10 11h.01M14 11h.01" />
+        </svg>
+      </div>
+      <div class="modal-title">Confirm Purchase</div>
+      <div class="modal-body">Please review your order details before confirming.</div>
+      <div class="modal-details" id="modalDetails"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-secondary" id="modalCancel">Cancel</button>
+        <button class="modal-btn modal-btn-primary" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
 
   <script>
     /* ── COW PATTERN BG ── */
     function drawCowPattern(ctx, width, height, seed) {
       const BLACK = '#000000';
       const WHITE = '#ffffff';
-
       function mulberry32(a) {
         return function () {
           var t = a += 0x6D2B79F5;
@@ -640,25 +766,18 @@
           return ((t ^ t >>> 14) >>> 0) / 4294967296;
         };
       }
-
       const rand = mulberry32(seed || 12345);
-
       ctx.fillStyle = WHITE;
       ctx.fillRect(0, 0, width, height);
-
       const numBlobs = 25;
-
       for (let i = 0; i < numBlobs; i++) {
         const cx = rand() * width;
         const cy = rand() * height;
         const baseRadius = 80 + rand() * 200;
-
         ctx.fillStyle = BLACK;
         ctx.beginPath();
-
         const points = 8 + Math.floor(rand() * 6);
         const coords = [];
-
         for (let p = 0; p < points; p++) {
           const angle = (p / points) * Math.PI * 2;
           const r = baseRadius * (0.6 + rand() * 0.8);
@@ -668,7 +787,6 @@
             y: cy + Math.sin(angle) * r + wobble
           });
         }
-
         for (let p = 0; p < coords.length; p++) {
           const curr = coords[p];
           const next = coords[(p + 1) % coords.length];
@@ -680,11 +798,9 @@
             ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
           }
         }
-
         ctx.closePath();
         ctx.fill();
       }
-
       for (let i = 0; i < 15; i++) {
         const sx = rand() * width;
         const sy = rand() * height;
@@ -695,27 +811,20 @@
         ctx.fill();
       }
     }
-
     (function () {
       const canvas = document.getElementById('bg-canvas');
       const ctx = canvas.getContext('2d', { alpha: false });
-
       function resize() {
         const w = Math.max(window.screen.width, window.innerWidth, document.documentElement.clientWidth);
         const h = Math.max(window.screen.height, window.innerHeight, document.documentElement.clientHeight);
-
         canvas.width = w;
         canvas.height = h;
-
         const wrapper = document.getElementById('bg-canvas-wrapper');
         wrapper.style.width = w + 'px';
         wrapper.style.height = h + 'px';
-
         drawCowPattern(ctx, w, h, 12345);
       }
-
       resize();
-
       window.addEventListener('resize', resize);
       window.addEventListener('orientationchange', function () {
         setTimeout(resize, 300);
@@ -725,71 +834,9 @@
       });
     })();
 
-    /* ── NETWORK CAROUSEL ── */
-    const DATA_PLANS = {
-      sme: {
-        MTN: [
-          { value: '1gb_sme', label: '1GB — 30 Days — ₦280' },
-          { value: '2gb_sme', label: '2GB — 30 Days — ₦560' },
-          { value: '5gb_sme', label: '5GB — 30 Days — ₦1,400' },
-          { value: '10gb_sme', label: '10GB — 30 Days — ₦2,800' }
-        ],
-        Glo: [
-          { value: '1gb_sme_glo', label: '1GB — 30 Days — ₦230' },
-          { value: '2gb_sme_glo', label: '2GB — 30 Days — ₦460' },
-          { value: '5gb_sme_glo', label: '5GB — 30 Days — ₦1,150' },
-          { value: '10gb_sme_glo', label: '10GB — 30 Days — ₦2,300' }
-        ],
-        Airtel: [
-          { value: '1gb_sme_air', label: '1GB — 30 Days — ₦260' },
-          { value: '2gb_sme_air', label: '2GB — 30 Days — ₦520' },
-          { value: '5gb_sme_air', label: '5GB — 30 Days — ₦1,300' },
-          { value: '10gb_sme_air', label: '10GB — 30 Days — ₦2,600' }
-        ]
-      },
-      corporate: {
-        MTN: [
-          { value: '1gb_corp', label: '1GB — 30 Days — ₦300' },
-          { value: '2gb_corp', label: '2GB — 30 Days — ₦600' },
-          { value: '5gb_corp', label: '5GB — 30 Days — ₦1,500' },
-          { value: '10gb_corp', label: '10GB — 30 Days — ₦3,000' }
-        ],
-        Glo: [
-          { value: '1gb_corp_glo', label: '1GB — 30 Days — ₦250' },
-          { value: '2gb_corp_glo', label: '2GB — 30 Days — ₦500' },
-          { value: '5gb_corp_glo', label: '5GB — 30 Days — ₦1,250' },
-          { value: '10gb_corp_glo', label: '10GB — 30 Days — ₦2,500' }
-        ],
-        Airtel: [
-          { value: '1gb_corp_air', label: '1GB — 30 Days — ₦280' },
-          { value: '2gb_corp_air', label: '2GB — 30 Days — ₦560' },
-          { value: '5gb_corp_air', label: '5GB — 30 Days — ₦1,400' },
-          { value: '10gb_corp_air', label: '10GB — 30 Days — ₦2,800' }
-        ]
-      },
-      gifting: {
-        MTN: [
-          { value: '1gb_gift', label: '1GB — 30 Days — ₦350' },
-          { value: '2gb_gift', label: '2GB — 30 Days — ₦700' },
-          { value: '5gb_gift', label: '5GB — 30 Days — ₦1,750' },
-          { value: '10gb_gift', label: '10GB — 30 Days — ₦3,500' }
-        ],
-        Glo: [
-          { value: '1gb_gift_glo', label: '1GB — 30 Days — ₦300' },
-          { value: '2gb_gift_glo', label: '2GB — 30 Days — ₦600' },
-          { value: '5gb_gift_glo', label: '5GB — 30 Days — ₦1,500' },
-          { value: '10gb_gift_glo', label: '10GB — 30 Days — ₦3,000' }
-        ],
-        Airtel: [
-          { value: '1gb_gift_air', label: '1GB — 30 Days — ₦330' },
-          { value: '2gb_gift_air', label: '2GB — 30 Days — ₦660' },
-          { value: '5gb_gift_air', label: '5GB — 30 Days — ₦1,650' },
-          { value: '10gb_gift_air', label: '10GB — 30 Days — ₦3,300' }
-        ]
-      }
-    };
-
+    /* ── NETWORK CAROUSEL & FORM LOGIC ── */
     (function () {
+      const DATA_PLANS = {{ data_plans | tojson }};
       const carousel = document.getElementById('networkCarousel');
       const cards = Array.from(carousel.querySelectorAll('.network-card'));
       const dotsWrap = document.getElementById('carouselDots');
@@ -799,9 +846,15 @@
       const bypassToggle = document.getElementById('bypassToggle');
       const pinInput = document.getElementById('pinInput');
       const purchaseBtn = document.getElementById('purchaseBtn');
+      const confirmModal = document.getElementById('confirmModal');
+      const modalDetails = document.getElementById('modalDetails');
+      const modalCancel = document.getElementById('modalCancel');
+      const modalConfirm = document.getElementById('modalConfirm');
+      const toast = document.getElementById('toast');
 
       let currentNetwork = cards[0].dataset.network;
       let currentPlanType = 'sme';
+      let isSubmitting = false;
 
       // build dots
       cards.forEach((_, i) => {
@@ -821,6 +874,7 @@
 
       function populateDataPlans() {
         const plans = (DATA_PLANS[currentPlanType] && DATA_PLANS[currentPlanType][currentNetwork]) || [];
+        const currentValue = dataPlanSelect.value;
         dataPlanSelect.innerHTML = '<option value="">Select data plan</option>';
         plans.forEach(p => {
           const opt = document.createElement('option');
@@ -828,6 +882,10 @@
           opt.textContent = p.label;
           dataPlanSelect.appendChild(opt);
         });
+        // Restore selection if still valid
+        if (currentValue && Array.from(dataPlanSelect.options).some(o => o.value === currentValue)) {
+          dataPlanSelect.value = currentValue;
+        }
         dataPlanSelect.disabled = plans.length === 0;
       }
 
@@ -874,9 +932,89 @@
         const phoneOk = bypassToggle.checked || /^0\d{10}$/.test(phoneInput.value.trim());
         const planOk = !!dataPlanSelect.value;
         const pinOk = /^\d{4}$/.test(pinInput.value.trim());
-        purchaseBtn.disabled = !(phoneOk && planOk && pinOk);
+        purchaseBtn.disabled = !(phoneOk && planOk && pinOk) || isSubmitting;
       }
 
+      function showToast(message, type) {
+        toast.textContent = message;
+        toast.className = 'toast ' + (type || 'success');
+        requestAnimationFrame(() => {
+          toast.classList.add('show');
+        });
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 4000);
+      }
+
+      function showConfirmModal() {
+        const planText = dataPlanSelect.options[dataPlanSelect.selectedIndex].textContent;
+        const phone = phoneInput.value.trim();
+        modalDetails.innerHTML = `
+          <div class="modal-detail-row">
+            <span class="modal-detail-label">Network</span>
+            <span class="modal-detail-value">${currentNetwork}</span>
+          </div>
+          <div class="modal-detail-row">
+            <span class="modal-detail-label">Plan</span>
+            <span class="modal-detail-value">${planText}</span>
+          </div>
+          <div class="modal-detail-row">
+            <span class="modal-detail-label">Phone</span>
+            <span class="modal-detail-value">${phone}</span>
+          </div>
+        `;
+        confirmModal.classList.add('show');
+      }
+
+      function hideConfirmModal() {
+        confirmModal.classList.remove('show');
+      }
+
+      async function submitPurchase() {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        purchaseBtn.classList.add('loading');
+        purchaseBtn.disabled = true;
+
+        const planText = dataPlanSelect.options[dataPlanSelect.selectedIndex].textContent;
+        const payload = {
+          network: currentNetwork,
+          plan_type: currentPlanType,
+          plan_value: dataPlanSelect.value,
+          phone: phoneInput.value.trim(),
+          pin: pinInput.value.trim(),
+          bypass: bypassToggle.checked
+        };
+
+        try {
+          const response = await fetch('/api/purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            showToast(result.message, 'success');
+            // Reset form after successful purchase
+            dataPlanSelect.value = '';
+            phoneInput.value = '';
+            pinInput.value = '';
+            bypassToggle.checked = false;
+            validateForm();
+          } else {
+            showToast(result.message || 'Purchase failed. Please try again.', 'error');
+          }
+        } catch (error) {
+          showToast('Network error. Please check your connection and try again.', 'error');
+        } finally {
+          isSubmitting = false;
+          purchaseBtn.classList.remove('loading');
+          validateForm();
+        }
+      }
+
+      // Event listeners
       dataPlanSelect.addEventListener('change', validateForm);
       phoneInput.addEventListener('input', () => {
         phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11);
@@ -889,14 +1027,28 @@
       });
 
       purchaseBtn.addEventListener('click', () => {
-        if (purchaseBtn.disabled) return;
-        const planText = dataPlanSelect.options[dataPlanSelect.selectedIndex].textContent;
-        alert('Purchasing ' + planText + ' on ' + currentNetwork + ' for ' + phoneInput.value + '...');
+        if (purchaseBtn.disabled || isSubmitting) return;
+        showConfirmModal();
+      });
+
+      modalCancel.addEventListener('click', hideConfirmModal);
+      modalConfirm.addEventListener('click', () => {
+        hideConfirmModal();
+        submitPurchase();
+      });
+
+      // Close modal on overlay click
+      confirmModal.addEventListener('click', (e) => {
+        if (e.target === confirmModal) hideConfirmModal();
+      });
+
+      // Keyboard support
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideConfirmModal();
       });
 
       // init
       setActiveCard(0);
-
       // center first card on load
       requestAnimationFrame(() => {
         const first = cards[0];
@@ -908,9 +1060,10 @@
     document.getElementById('backBtn').addEventListener('click', () => {
       if (window.history.length > 1) {
         window.history.back();
+      } else {
+        window.location.href = '/';
       }
     });
   </script>
 </body>
-
 </html>
