@@ -2,7 +2,7 @@
 import os
 import re
 import threading
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -39,6 +39,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=True)
     name = db.Column(db.String(100), nullable=True)
     phone = db.Column(db.String(20), unique=True, nullable=True, index=True)
+    school = db.Column(db.String(150), nullable=True)
 
     transaction_pin = db.Column(db.String(256), nullable=True)  # Hashed 4-digit PIN
     balance = db.Column(db.Float, default=0.0)
@@ -75,6 +76,51 @@ class User(db.Model):
         if not self.transaction_pin:
             return False
         return check_password_hash(self.transaction_pin, pin)
+
+
+# ===================== NOTIFICATION MODEL =====================
+class Notification(db.Model):
+    __tablename__ = 'vtmoo_notifications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    telegram_id = db.Column(db.BigInteger, nullable=False, index=True)
+
+    type = db.Column(db.String(20), default='info')  # info, success, warning
+    title = db.Column(db.String(150), nullable=False)
+    body = db.Column(db.Text, nullable=True)
+    read = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+def create_notification(telegram_id, title, body="", ntype="info"):
+    notif = Notification(
+        telegram_id=telegram_id,
+        title=title,
+        body=body,
+        type=ntype
+    )
+    db.session.add(notif)
+    db.session.commit()
+    return notif
+
+
+# ===================== PERK APPLICATION MODEL =====================
+class PerkApplication(db.Model):
+    __tablename__ = 'vtmoo_perk_applications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    telegram_id = db.Column(db.BigInteger, nullable=False, index=True)
+
+    school = db.Column(db.String(150), nullable=False)
+    matric_number = db.Column(db.String(50), nullable=False)
+    level = db.Column(db.String(20), nullable=False)
+
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    rejection_reason = db.Column(db.String(255), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # ===================== HELPERS =====================
@@ -131,6 +177,39 @@ def process_first_pin(message):
             db.session.commit()
             bot.send_message(message.chat.id, "✅ PIN set successfully!\n\nYou can now use the bot.")
             send_dashboard_link(message.chat.id)
+
+
+def get_telegram_id_from_request(data):
+    """Safely extract and validate telegram_id from a JSON request body."""
+    telegram_id = data.get('telegram_id')
+    if telegram_id is None:
+        return None
+    try:
+        return int(telegram_id)
+    except (TypeError, ValueError):
+        return None
+
+
+def relative_time(dt):
+    """Return a human-friendly relative time string for a datetime."""
+    if not dt:
+        return ""
+    now = datetime.utcnow()
+    diff = now - dt
+    seconds = diff.total_seconds()
+
+    if seconds < 60:
+        return "Just now"
+    minutes = int(seconds // 60)
+    if minutes < 60:
+        return f"{minutes}m ago"
+    hours = int(minutes // 60)
+    if hours < 24:
+        return f"{hours}h ago"
+    days = int(hours // 24)
+    if days < 7:
+        return f"{days}d ago"
+    return dt.strftime('%d %b %Y')
 
 
 # ===================== BOT COMMANDS =====================
@@ -191,7 +270,7 @@ LOADER_HTML = """
           tg.expand();
           const tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
           if (tgUser && tgUser.id) {
-            window.location.replace('/dashboard?telegram_id=' + tgUser.id);
+            window.location.replace('{target}?telegram_id=' + tgUser.id);
             return;
           }
         }
@@ -207,35 +286,244 @@ LOADER_HTML = """
 """
 
 
-@app.route('/dashboard')
-def dashboard():
-    telegram_id = request.args.get('telegram_id')
-
-    if not telegram_id:
-        # No telegram_id yet — serve loader page that pulls it from Telegram WebApp SDK
-        return LOADER_HTML
+def get_user_or_404(telegram_id_str):
+    """Validate telegram_id query param and fetch the user, or return an error response."""
+    if not telegram_id_str:
+        return None, LOADER_HTML.replace('{target}', request.path)
 
     try:
-        telegram_id = int(telegram_id)
+        telegram_id = int(telegram_id_str)
     except ValueError:
-        return "Invalid telegram_id", 400
+        return None, ("Invalid telegram_id", 400)
 
     user = User.query.filter_by(telegram_id=telegram_id).first()
     if not user:
-        return "User not found", 404
+        return None, ("User not found", 404)
+
+    return user, None
+
+
+@app.route('/dashboard')
+def dashboard():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
 
     # Most recent transactions first, limit to last 5
     recent_transactions = list(reversed(user.transaction_history or []))[:5]
+
+    # Build display-friendly dates for activity rows
+    display_transactions = []
+    for tx in recent_transactions:
+        tx_copy = dict(tx)
+        try:
+            tx_date = datetime.fromisoformat(tx_copy.get('date'))
+            tx_copy['date'] = relative_time(tx_date)
+        except (TypeError, ValueError):
+            pass
+        display_transactions.append(tx_copy)
+
+    unread_notifications = Notification.query.filter_by(
+        telegram_id=user.telegram_id, read=False
+    ).count()
 
     try:
         return render_template(
             'dashboard.html',
             user=user,
-            recent_transactions=recent_transactions
+            recent_transactions=display_transactions,
+            unread_notifications=unread_notifications
         )
     except Exception as e:
         app.logger.exception("Dashboard render error")
         return f"Template error: {e}", 500
+
+
+@app.route('/notifications')
+def notifications():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
+
+    notifs = Notification.query.filter_by(
+        telegram_id=user.telegram_id
+    ).order_by(Notification.created_at.desc()).limit(50).all()
+
+    notification_list = [{
+        "id": n.id,
+        "type": n.type,
+        "title": n.title,
+        "body": n.body,
+        "date": relative_time(n.created_at),
+        "read": n.read
+    } for n in notifs]
+
+    unread_notifications = sum(1 for n in notification_list if not n["read"])
+
+    try:
+        return render_template(
+            'notification.html',
+            user=user,
+            notifications=notification_list,
+            unread_notifications=unread_notifications
+        )
+    except Exception as e:
+        app.logger.exception("Notifications render error")
+        return f"Template error: {e}", 500
+
+
+@app.route('/profile')
+def profile():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
+
+    try:
+        return render_template('profile.html', user=user)
+    except Exception as e:
+        app.logger.exception("Profile render error")
+        return f"Template error: {e}", 500
+
+
+@app.route('/perks')
+def perks():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
+
+    application = PerkApplication.query.filter_by(
+        telegram_id=user.telegram_id
+    ).order_by(PerkApplication.created_at.desc()).first()
+
+    perk_status = application.status if application else None
+    perk_rejection_reason = application.rejection_reason if application else None
+
+    try:
+        return render_template(
+            'perks.html',
+            user=user,
+            perk_status=perk_status,
+            perk_rejection_reason=perk_rejection_reason
+        )
+    except Exception as e:
+        app.logger.exception("Perks render error")
+        return f"Template error: {e}", 500
+
+
+# ===================== API ROUTES =====================
+@app.route('/api/notifications/read', methods=['POST'])
+def mark_notification_read():
+    data = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+    notification_id = data.get('notification_id')
+
+    if telegram_id is None or notification_id is None:
+        return jsonify(success=False, message="Missing telegram_id or notification_id"), 400
+
+    notif = Notification.query.filter_by(id=notification_id, telegram_id=telegram_id).first()
+    if not notif:
+        return jsonify(success=False, message="Notification not found"), 404
+
+    notif.read = True
+    db.session.commit()
+    return jsonify(success=True)
+
+
+@app.route('/api/notifications/read-all', methods=['POST'])
+def mark_all_notifications_read():
+    data = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+
+    if telegram_id is None:
+        return jsonify(success=False, message="Missing telegram_id"), 400
+
+    Notification.query.filter_by(telegram_id=telegram_id, read=False).update({"read": True})
+    db.session.commit()
+    return jsonify(success=True)
+
+
+@app.route('/api/profile/update-pin', methods=['POST'])
+def update_pin():
+    data = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+    current_pin = (data.get('current_pin') or '').strip()
+    new_pin = (data.get('new_pin') or '').strip()
+
+    if telegram_id is None:
+        return jsonify(success=False, message="Missing telegram_id"), 400
+
+    if not re.match(r'^\d{4}$', current_pin) or not re.match(r'^\d{4}$', new_pin):
+        return jsonify(success=False, message="PIN must be exactly 4 digits."), 400
+
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if not user:
+        return jsonify(success=False, message="User not found"), 404
+
+    if not user.check_pin(current_pin):
+        return jsonify(success=False, message="Current PIN is incorrect."), 400
+
+    user.set_pin(new_pin)
+    db.session.commit()
+
+    create_notification(
+        telegram_id,
+        "Transaction PIN updated",
+        "Your transaction PIN was changed successfully.",
+        ntype="success"
+    )
+
+    return jsonify(success=True, message="PIN updated successfully.")
+
+
+@app.route('/api/perks/apply', methods=['POST'])
+def apply_for_perks():
+    data = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+    school = (data.get('school') or '').strip()
+    matric_number = (data.get('matric_number') or '').strip()
+    level = (data.get('level') or '').strip()
+
+    if telegram_id is None:
+        return jsonify(success=False, message="Missing telegram_id"), 400
+
+    if not school or not matric_number or not level:
+        return jsonify(success=False, message="Please fill in all fields."), 400
+
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if not user:
+        return jsonify(success=False, message="User not found"), 404
+
+    existing = PerkApplication.query.filter_by(
+        telegram_id=telegram_id
+    ).order_by(PerkApplication.created_at.desc()).first()
+
+    if existing and existing.status in ('approved', 'pending'):
+        return jsonify(success=False, message="You already have an application in progress."), 400
+
+    application = PerkApplication(
+        telegram_id=telegram_id,
+        school=school,
+        matric_number=matric_number,
+        level=level,
+        status='pending'
+    )
+    db.session.add(application)
+
+    user.school = school
+    db.session.commit()
+
+    create_notification(
+        telegram_id,
+        "Perks application submitted",
+        "We're reviewing your student perks application. We'll let you know once it's processed.",
+        ntype="info"
+    )
+
+    return jsonify(success=True, message="Application submitted! We'll review it shortly.")
 
 
 # ===================== FLASK SETUP =====================
