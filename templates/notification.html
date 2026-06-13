@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>VTMoo — Alerts</title>
+  <title>VTMoo — Notifications</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,141 +12,368 @@
     href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@400;500&display=swap"
     rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
-      width: 100%; min-height: 100vh; overflow-x: hidden;
-      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-      font-family: 'Barlow Condensed', sans-serif; background: #ffffff; color: #000000;
+      width: 100%;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-family: 'Barlow Condensed', sans-serif;
+      background: #ffffff;
+      color: #000000;
     }
 
     /* ── COW PATTERN BG ── */
-    #bg-canvas-wrapper { position: fixed; inset: 0; width: 100vw; height: 100vh; min-width: 100%; min-height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
-    #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
-    #bg-overlay { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 75%); }
+    #bg-canvas-wrapper {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
 
-    .app { position: relative; z-index: 10; min-height: 100vh; max-width: 480px; margin: 0 auto; padding: 22px 20px 110px; display: flex; flex-direction: column; }
+    #bg-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
 
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    #bg-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 75%);
+    }
+
+    /* ── PAGE FRAME ── */
+    .app {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 22px 20px 60px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     /* ── TOP BAR ── */
-    .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; opacity: 0; animation: fadeUp 0.6s ease 0.05s forwards; }
-    .back-btn {
-      width: 44px; height: 44px; border-radius: 14px; background: rgba(0,0,0,0.08);
-      border: 1px solid rgba(0,0,0,0.15); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease;
-      -webkit-tap-highlight-color: transparent; text-decoration: none; flex-shrink: 0;
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.05s forwards;
     }
-    .back-btn:hover { background: rgba(0,0,0,0.12); border-color: rgba(0,0,0,0.25); }
-    .back-btn svg { width: 20px; height: 20px; stroke: #1a1a1a; }
-    .page-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em; }
-    .page-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #777777; margin-top: 2px; }
 
-    .mark-all-row { margin-left: auto; }
-    .mark-all-btn {
-      font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.05em;
-      color: #000000; background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.15);
-      border-radius: 100px; padding: 9px 14px; cursor: pointer; transition: all 0.2s ease;
-      -webkit-tap-highlight-color: transparent; text-transform: uppercase;
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
-    .mark-all-btn:hover { background: rgba(0,0,0,0.12); }
-    .mark-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.12);
+      border-color: rgba(0, 0, 0, 0.25);
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: #1a1a1a;
+    }
+
+    .topbar-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+      color: #000000;
+    }
+
+    .mark-read-btn {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      color: #555555;
+      background: rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
+    }
+
+    .mark-read-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: #000000;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .section-head {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #000000;
+      margin: 0 0 14px;
+    }
+
+    .section-head.spaced {
+      margin-top: 28px;
+    }
 
     /* ── NOTIFICATION LIST ── */
-    .notif-list { display: flex; flex-direction: column; gap: 10px; opacity: 0; animation: fadeUp 0.6s ease 0.16s forwards; }
-
-    .notif-row {
-      display: flex; align-items: flex-start; gap: 14px;
-      background: rgba(240,240,240,0.6); border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      position: relative; transition: background 0.25s ease;
-    }
-    .notif-row.unread { background: rgba(255,255,255,0.92); border-color: rgba(0,0,0,0.15); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
-
-    .notif-icon {
-      width: 38px; height: 38px; border-radius: 50%; background: rgba(200,200,200,0.4);
-      border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .notif-icon svg { width: 17px; height: 17px; stroke: #1a1a1a; }
-
-    .notif-info { display: flex; flex-direction: column; gap: 3px; flex: 1; }
-    .notif-title { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 14px; color: #000000; letter-spacing: -0.01em; }
-    .notif-body { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 13px; color: #555555; line-height: 1.4; }
-    .notif-time { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #999999; margin-top: 2px; }
-
-    .unread-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #000000; flex-shrink: 0; margin-top: 6px;
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.12s forwards;
     }
 
-    .notif-empty {
-      text-align: center; padding: 60px 20px;
-      opacity: 0; animation: fadeUp 0.6s ease 0.16s forwards;
+    /* ── GLASS NOTIFICATION CARD ── */
+    .notif-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background 0.25s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .notif-empty svg { width: 48px; height: 48px; stroke: #cccccc; margin-bottom: 14px; }
-    .notif-empty-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 16px; color: #444444; margin-bottom: 6px; }
-    .notif-empty-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 13px; color: #999999; }
 
-    /* ── BOTTOM GLASS NAV ── */
-    .bottom-nav {
-      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 100;
-      width: calc(100% - 40px); max-width: 440px; display: flex; align-items: center; justify-content: space-around;
-      padding: 10px 14px; border-radius: 28px; background: rgba(255,255,255,0.75);
-      border: 1px solid rgba(0,0,0,0.15); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
+    .notif-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
-    .nav-item {
-      display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 18px;
-      border-radius: 18px; cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      -webkit-tap-highlight-color: transparent; position: relative; text-decoration: none;
-    }
-    .nav-item svg { width: 21px; height: 21px; stroke: #888888; transition: stroke 0.25s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
-    .nav-item span { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #888888; transition: color 0.25s ease; }
-    .nav-item.active { background: rgba(0,0,0,0.08); box-shadow: inset 0 1px 0 rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-3px); }
-    .nav-item.active svg { stroke: #000000; transform: scale(1.08); }
-    .nav-item.active span { color: #000000; }
 
-    @media (max-width: 380px) {
-      .nav-item { padding: 9px 12px; }
+    .notif-card.unread {
+      background: rgba(255, 255, 255, 0.72);
+      border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    .notif-card.unread::before {
+      content: '';
+      position: absolute;
+      top: 18px;
+      right: 16px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #000000;
+    }
+
+    .notif-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .notif-icon-wrap svg {
+      width: 19px;
+      height: 19px;
+      stroke: #1a1a1a;
+    }
+
+    .notif-icon-wrap.dark {
+      background: #000000;
+      border-color: #000000;
+    }
+
+    .notif-icon-wrap.dark svg {
+      stroke: #ffffff;
+    }
+
+    .notif-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+      padding-right: 14px;
+    }
+
+    .notif-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: #000000;
+      letter-spacing: -0.01em;
+    }
+
+    .notif-desc {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #555555;
+    }
+
+    .notif-time {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #999999;
+      margin-top: 4px;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 14px;
+      padding: 60px 20px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.12s forwards;
+    }
+
+    .empty-state.show {
+      display: flex;
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: #aaaaaa;
+    }
+
+    .empty-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      color: #000000;
+    }
+
+    .empty-desc {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      color: #999999;
+      max-width: 260px;
+      line-height: 1.5;
     }
   </style>
 </head>
 
 <body>
 
-  <div id="bg-canvas-wrapper"><canvas id="bg-canvas"></canvas></div>
+  <div id="bg-canvas-wrapper">
+    <canvas id="bg-canvas"></canvas>
+  </div>
   <div id="bg-overlay"></div>
 
   <div class="app">
 
     <!-- TOP BAR -->
     <div class="topbar">
-      <a class="back-btn" href="{{ url_for('dashboard', telegram_id=user.telegram_id) }}">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-      </a>
-      <div>
-        <div class="page-title">Alerts</div>
-        <div class="page-sub">{{ notifications|length }} Notification{{ 's' if notifications|length != 1 else '' }}</div>
+      <div class="topbar-left">
+        <a class="icon-btn" id="backBtn" href="/dashboard?telegram_id={{ user.telegram_id }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </a>
+        <div class="topbar-title">Notifications</div>
       </div>
-      <div class="mark-all-row">
-        <button class="mark-all-btn" id="markAllBtn" {% if not unread_notifications %}disabled{% endif %}>Mark all read</button>
-      </div>
+      <div class="mark-read-btn" id="markReadBtn">Mark all read</div>
     </div>
 
-    {% if notifications and notifications|length > 0 %}
+    <!-- NOTIFICATIONS -->
     <div class="notif-list" id="notifList">
       {% for n in notifications %}
-      <div class="notif-row {{ 'unread' if not n.read else '' }}" data-id="{{ n.id }}">
-        <div class="notif-icon">
+      <div class="notif-card {{ 'unread' if not n.read else '' }}" data-id="{{ n.id }}">
+        <div class="notif-icon-wrap {{ 'dark' if n.type == 'success' else '' }}">
           {% if n.type == 'success' %}
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
           {% elif n.type == 'warning' %}
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            <path d="M12 9v4M12 17h.01" />
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
           </svg>
           {% else %}
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -155,62 +382,35 @@
           </svg>
           {% endif %}
         </div>
-        <div class="notif-info">
+        <div class="notif-body">
           <span class="notif-title">{{ n.title }}</span>
-          <span class="notif-body">{{ n.body }}</span>
+          {% if n.body %}<span class="notif-desc">{{ n.body }}</span>{% endif %}
           <span class="notif-time">{{ n.date }}</span>
         </div>
-        {% if not n.read %}
-        <div class="unread-dot"></div>
-        {% endif %}
       </div>
       {% endfor %}
     </div>
-    {% else %}
-    <div class="notif-empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-        <path d="M13.73 21a2 2 0 01-3.46 0" />
-      </svg>
-      <div class="notif-empty-title">No alerts yet</div>
-      <div class="notif-empty-sub">We'll let you know when something happens.</div>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state {{ 'show' if not notifications or notifications|length == 0 else '' }}" id="emptyState">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 01-3.46 0" />
+        </svg>
+      </div>
+      <div class="empty-title">You're all caught up</div>
+      <div class="empty-desc">No new notifications right now. We'll let you know when something needs your attention.</div>
     </div>
-    {% endif %}
 
   </div>
-
-  <!-- BOTTOM GLASS NAV -->
-  <nav class="bottom-nav">
-    <a class="nav-item" data-nav="home" href="{{ url_for('dashboard', telegram_id=user.telegram_id) }}">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9.5L12 3l9 6.5" /><path d="M5 9v11h14V9" />
-      </svg>
-      <span>Home</span>
-    </a>
-    <a class="nav-item" data-nav="perks" href="{{ url_for('perks', telegram_id=user.telegram_id) }}">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" /><path d="M12 6v12" />
-      </svg>
-      <span>Perks</span>
-    </a>
-    <a class="nav-item active" data-nav="notifications" href="{{ url_for('notifications', telegram_id=user.telegram_id) }}">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
-      </svg>
-      <span>Alerts</span>
-    </a>
-    <a class="nav-item" data-nav="profile" href="{{ url_for('profile', telegram_id=user.telegram_id) }}">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="8" r="4" /><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
-      </svg>
-      <span>Profile</span>
-    </a>
-  </nav>
 
   <script>
     /* ── COW PATTERN BG ── */
     function drawCowPattern(ctx, width, height, seed) {
-      const BLACK = '#000000', WHITE = '#ffffff';
+      const BLACK = '#000000';
+      const WHITE = '#ffffff';
+
       function mulberry32(a) {
         return function () {
           var t = a += 0x6D2B79F5;
@@ -219,102 +419,143 @@
           return ((t ^ t >>> 14) >>> 0) / 4294967296;
         };
       }
+
       const rand = mulberry32(seed || 12345);
-      ctx.fillStyle = WHITE; ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = WHITE;
+      ctx.fillRect(0, 0, width, height);
+
       const numBlobs = 25;
+
       for (let i = 0; i < numBlobs; i++) {
-        const cx = rand() * width, cy = rand() * height, baseRadius = 80 + rand() * 200;
-        ctx.fillStyle = BLACK; ctx.beginPath();
-        const points = 8 + Math.floor(rand() * 6), coords = [];
+        const cx = rand() * width;
+        const cy = rand() * height;
+        const baseRadius = 80 + rand() * 200;
+
+        ctx.fillStyle = BLACK;
+        ctx.beginPath();
+
+        const points = 8 + Math.floor(rand() * 6);
+        const coords = [];
+
         for (let p = 0; p < points; p++) {
-          const angle = (p / points) * Math.PI * 2, r = baseRadius * (0.6 + rand() * 0.8), wobble = (rand() - 0.5) * 40;
-          coords.push({ x: cx + Math.cos(angle) * r + wobble, y: cy + Math.sin(angle) * r + wobble });
+          const angle = (p / points) * Math.PI * 2;
+          const r = baseRadius * (0.6 + rand() * 0.8);
+          const wobble = (rand() - 0.5) * 40;
+          coords.push({
+            x: cx + Math.cos(angle) * r + wobble,
+            y: cy + Math.sin(angle) * r + wobble
+          });
         }
+
         for (let p = 0; p < coords.length; p++) {
-          const curr = coords[p], next = coords[(p + 1) % coords.length];
-          const midX = (curr.x + next.x) / 2, midY = (curr.y + next.y) / 2;
-          if (p === 0) ctx.moveTo(midX, midY); else ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
+          const curr = coords[p];
+          const next = coords[(p + 1) % coords.length];
+          const midX = (curr.x + next.x) / 2;
+          const midY = (curr.y + next.y) / 2;
+          if (p === 0) {
+            ctx.moveTo(midX, midY);
+          } else {
+            ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
+          }
         }
-        ctx.closePath(); ctx.fill();
+
+        ctx.closePath();
+        ctx.fill();
       }
+
       for (let i = 0; i < 15; i++) {
-        const sx = rand() * width, sy = rand() * height, sr = 10 + rand() * 30;
-        ctx.fillStyle = BLACK; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+        const sx = rand() * width;
+        const sy = rand() * height;
+        const sr = 10 + rand() * 30;
+        ctx.fillStyle = BLACK;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
+
     (function () {
       const canvas = document.getElementById('bg-canvas');
       const ctx = canvas.getContext('2d', { alpha: false });
+
       function resize() {
         const w = Math.max(window.screen.width, window.innerWidth, document.documentElement.clientWidth);
         const h = Math.max(window.screen.height, window.innerHeight, document.documentElement.clientHeight);
-        canvas.width = w; canvas.height = h;
+
+        canvas.width = w;
+        canvas.height = h;
+
         const wrapper = document.getElementById('bg-canvas-wrapper');
-        wrapper.style.width = w + 'px'; wrapper.style.height = h + 'px';
+        wrapper.style.width = w + 'px';
+        wrapper.style.height = h + 'px';
+
         drawCowPattern(ctx, w, h, 12345);
       }
+
       resize();
+
       window.addEventListener('resize', resize);
-      window.addEventListener('orientationchange', function () { setTimeout(resize, 300); });
-      window.visualViewport && window.visualViewport.addEventListener('resize', function () { setTimeout(resize, 100); });
+      window.addEventListener('orientationchange', function () {
+        setTimeout(resize, 300);
+      });
+      window.visualViewport && window.visualViewport.addEventListener('resize', function () {
+        setTimeout(resize, 100);
+      });
     })();
 
     /* ── TELEGRAM MINI APP INIT ── */
     (function () {
       try {
         const tg = window.Telegram && window.Telegram.WebApp;
-        if (tg) { tg.ready(); tg.expand(); }
-      } catch (e) { console.warn('Telegram WebApp init failed:', e); }
+        if (tg) {
+          tg.ready();
+          tg.expand();
+        }
+      } catch (e) {
+        console.warn('Telegram WebApp init failed:', e);
+      }
     })();
 
-    /* ── MARK AS READ LOGIC ── */
+    /* ── MARK AS READ ── */
     (function () {
-      const markAllBtn = document.getElementById('markAllBtn');
-      const notifRows = document.querySelectorAll('.notif-row');
+      const TELEGRAM_ID = {{ user.telegram_id }};
+      const markReadBtn = document.getElementById('markReadBtn');
+      const cards = document.querySelectorAll('.notif-card');
 
-      function getTelegramId() {
-        const tg = window.Telegram && window.Telegram.WebApp;
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-          return tg.initDataUnsafe.user.id;
+      async function markRead(notificationId, cardEl) {
+        try {
+          await fetch('/api/notifications/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: TELEGRAM_ID, notification_id: notificationId })
+          });
+          cardEl.classList.remove('unread');
+        } catch (e) {
+          console.warn('Failed to mark notification as read:', e);
         }
-        return new URLSearchParams(window.location.search).get('telegram_id');
       }
 
-      // Tap individual notification to mark as read
-      notifRows.forEach(row => {
-        row.addEventListener('click', async () => {
-          if (!row.classList.contains('unread')) return;
-          row.classList.remove('unread');
-          const dot = row.querySelector('.unread-dot');
-          if (dot) dot.remove();
-          try {
-            await fetch('/api/notifications/read', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ telegram_id: getTelegramId(), notification_id: row.dataset.id })
-            });
-          } catch (e) { console.warn('Failed to mark notification read', e); }
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          if (card.classList.contains('unread')) {
+            markRead(card.dataset.id, card);
+          }
         });
       });
 
-      if (markAllBtn) {
-        markAllBtn.addEventListener('click', async () => {
-          if (markAllBtn.disabled) return;
-          markAllBtn.disabled = true;
-          notifRows.forEach(row => {
-            row.classList.remove('unread');
-            const dot = row.querySelector('.unread-dot');
-            if (dot) dot.remove();
+      markReadBtn.addEventListener('click', async () => {
+        try {
+          await fetch('/api/notifications/read-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: TELEGRAM_ID })
           });
-          try {
-            await fetch('/api/notifications/read-all', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ telegram_id: getTelegramId() })
-            });
-          } catch (e) { console.warn('Failed to mark all read', e); }
-        });
-      }
+          cards.forEach(card => card.classList.remove('unread'));
+        } catch (e) {
+          console.warn('Failed to mark all as read:', e);
+        }
+      });
     })();
   </script>
 </body>
