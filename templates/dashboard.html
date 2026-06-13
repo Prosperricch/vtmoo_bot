@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>VTMoo — Dashboard</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -98,7 +99,7 @@
       font-size: 12px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #888888;
+      color: #000000;
     }
 
     .user-greeting .username {
@@ -256,7 +257,7 @@
       font-size: 13px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #555555;
+      color: #000000;
       margin: 32px 0 14px;
       opacity: 0;
       animation: fadeUp 0.6s ease 0.2s forwards;
@@ -761,6 +762,28 @@
           item.classList.add('active');
         });
       });
+    })();
+    /* ── TELEGRAM MINI APP INIT ── */
+    (function () {
+      try {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if (tg) {
+          tg.ready();
+          tg.expand();
+
+          const tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
+          if (tgUser && tgUser.id) {
+            const params = new URLSearchParams(window.location.search);
+            const currentId = params.get('telegram_id');
+            if (String(currentId) !== String(tgUser.id)) {
+              params.set('telegram_id', tgUser.id);
+              window.location.replace(window.location.pathname + '?' + params.toString());
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Telegram WebApp init failed:', e);
+      }
     })();
   </script>
 </body>
