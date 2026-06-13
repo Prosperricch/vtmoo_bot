@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>VTMoo — Buy Data</title>
+  <title>VTMoo — Notifications</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -86,10 +86,17 @@
     .topbar {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 14px;
       margin-bottom: 28px;
       opacity: 0;
       animation: fadeUp 0.6s ease 0.05s forwards;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
 
     .icon-btn {
@@ -128,6 +135,27 @@
       color: #000000;
     }
 
+    .mark-read-btn {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      color: #555555;
+      background: rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
+    }
+
+    .mark-read-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: #000000;
+    }
+
     /* ── SECTION HEADERS ── */
     .section-head {
       font-family: 'Barlow', sans-serif;
@@ -137,386 +165,173 @@
       text-transform: uppercase;
       color: #555555;
       margin: 0 0 14px;
+    }
+
+    .section-head.spaced {
+      margin-top: 28px;
+    }
+
+    /* ── NOTIFICATION LIST ── */
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       opacity: 0;
       animation: fadeUp 0.6s ease 0.12s forwards;
     }
 
-    .section-head.spaced {
-      margin-top: 24px;
-    }
-
-    /* ── NETWORK CAROUSEL ── */
-    .carousel-wrap {
+    /* ── GLASS NOTIFICATION CARD ── */
+    .notif-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
       position: relative;
-      margin-bottom: 8px;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.18s forwards;
-    }
-
-    .carousel {
-      display: flex;
-      gap: 16px;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      padding: 6px 0 18px;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .carousel::-webkit-scrollbar {
-      display: none;
-    }
-
-    .carousel::before,
-    .carousel::after {
-      content: '';
-      flex: 0 0 calc(50% - 60px);
-    }
-
-    .network-card {
-      flex: 0 0 96px;
-      scroll-snap-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background 0.25s ease;
       -webkit-tap-highlight-color: transparent;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-      transform: scale(0.8);
-      opacity: 0.4;
     }
 
-    .network-card.active {
-      transform: scale(1);
-      opacity: 1;
+    .notif-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
-    .network-logo {
-      width: 96px;
-      height: 96px;
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    .notif-card.unread {
+      background: rgba(255, 255, 255, 0.72);
+      border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    .notif-card.unread::before {
+      content: '';
+      position: absolute;
+      top: 18px;
+      right: 16px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #000000;
+    }
+
+    .notif-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      transition: box-shadow 0.35s ease, border-color 0.35s ease;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .notif-icon-wrap svg {
+      width: 19px;
+      height: 19px;
+      stroke: #1a1a1a;
+    }
+
+    .notif-icon-wrap.dark {
+      background: #000000;
+      border-color: #000000;
+    }
+
+    .notif-icon-wrap.dark svg {
+      stroke: #ffffff;
+    }
+
+    .notif-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+      padding-right: 14px;
+    }
+
+    .notif-title {
       font-family: 'Barlow', sans-serif;
       font-weight: 800;
-      font-size: 13px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #999999;
-    }
-
-    .network-logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .network-card.active .network-logo {
-      border-color: rgba(0, 0, 0, 0.35);
-      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
-    }
-
-    .carousel-dots {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 8px;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.22s forwards;
-    }
-
-    .carousel-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.15);
-      transition: all 0.3s ease;
-    }
-
-    .carousel-dot.active {
-      background: #000000;
-      width: 18px;
-      border-radius: 4px;
-    }
-
-    /* ── FORM CARD ── */
-    .form-card {
-      border-radius: 20px;
-      padding: 22px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.28s forwards;
-      margin-bottom: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .field-label {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #888888;
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    /* ── PLAN TYPE TABS ── */
-    .plan-tabs {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .plan-tab {
-      flex: 1;
-      min-width: 0;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 0.04em;
-      text-align: center;
-      color: #000000;
-      background: rgba(0, 0, 0, 0.04);
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      border-radius: 12px;
-      padding: 11px 6px;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-      -webkit-tap-highlight-color: transparent;
-      white-space: nowrap;
-    }
-
-    .plan-tab:hover {
-      background: rgba(0, 0, 0, 0.08);
-    }
-
-    .plan-tab.selected {
-      background: #000000;
-      color: #ffffff;
-      border-color: #000000;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
-    }
-
-    @media (max-width: 380px) {
-      .plan-tabs {
-        flex-wrap: wrap;
-      }
-      .plan-tab {
-        flex: 0 0 calc(50% - 4px);
-      }
-    }
-
-    /* ── SELECT ── */
-    .select-wrap {
-      position: relative;
-    }
-
-    .select-wrap select {
-      width: 100%;
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      background: rgba(0, 0, 0, 0.04);
-      border-radius: 14px;
-      padding: 14px 40px 14px 16px;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
       font-size: 14px;
       color: #000000;
-      cursor: pointer;
-      outline: none;
-      transition: border-color 0.2s ease;
+      letter-spacing: -0.01em;
     }
 
-    .select-wrap select:focus {
-      border-color: rgba(0, 0, 0, 0.4);
-    }
-
-    .select-wrap select:disabled {
-      color: #aaaaaa;
-      cursor: not-allowed;
-    }
-
-    .select-wrap svg {
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      stroke: #888888;
-      pointer-events: none;
-    }
-
-    /* ── TEXT INPUT ── */
-    .text-input {
-      width: 100%;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      background: rgba(0, 0, 0, 0.04);
-      border-radius: 14px;
-      padding: 14px 16px;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 14px;
-      color: #000000;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-
-    .text-input:focus {
-      border-color: rgba(0, 0, 0, 0.4);
-    }
-
-    .text-input::placeholder {
-      color: #c4c4c4;
-      font-weight: 500;
-    }
-
-    /* remove number spinners + letter spacing for PIN */
-    .text-input[type=number]::-webkit-outer-spin-button,
-    .text-input[type=number]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    .text-input[type=number] {
-      -moz-appearance: textfield;
-    }
-
-    .pin-input {
-      letter-spacing: 0.6em;
-      text-align: center;
-      font-size: 20px;
-    }
-
-    /* ── TOGGLE ROW ── */
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .toggle-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .toggle-title {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
+    .notif-desc {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
       font-size: 13px;
-      color: #000000;
+      line-height: 1.5;
+      color: #555555;
     }
 
-    .toggle-sub {
+    .notif-time {
       font-family: 'Barlow Condensed', sans-serif;
       font-weight: 400;
       font-size: 11px;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       color: #999999;
+      margin-top: 4px;
     }
 
-    .switch {
-      position: relative;
-      width: 46px;
-      height: 26px;
-      flex-shrink: 0;
-    }
-
-    .switch input {
+    /* ── EMPTY STATE (hidden by default, shown via JS if list empties) ── */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 14px;
+      padding: 60px 20px;
       opacity: 0;
-      width: 0;
-      height: 0;
+      animation: fadeUp 0.6s ease 0.12s forwards;
     }
 
-    .switch-slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.15);
-      border-radius: 999px;
-      transition: background 0.25s ease;
+    .empty-state.show {
+      display: flex;
     }
 
-    .switch-slider::before {
-      content: '';
-      position: absolute;
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      bottom: 3px;
-      background: #ffffff;
+    .empty-icon {
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    }
-
-    .switch input:checked + .switch-slider {
-      background: #000000;
-    }
-
-    .switch input:checked + .switch-slider::before {
-      transform: translateX(20px);
-    }
-
-    /* ── SUBMIT ── */
-    .submit-btn {
-      width: 100%;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+    }
+
+    .empty-icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: #aaaaaa;
+    }
+
+    .empty-title {
       font-family: 'Barlow', sans-serif;
       font-weight: 800;
-      font-size: 15px;
-      letter-spacing: 0.05em;
-      color: #ffffff;
-      background: #000000;
-      border: none;
-      border-radius: 16px;
-      padding: 18px;
-      cursor: pointer;
-      transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-      -webkit-tap-highlight-color: transparent;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.36s forwards;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+      font-size: 16px;
+      color: #000000;
     }
 
-    .submit-btn:hover {
-      transform: translateY(-2px);
-      background: #1a1a1a;
-    }
-
-    .submit-btn:active {
-      transform: translateY(0) scale(0.98);
-    }
-
-    .submit-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .submit-btn svg {
-      width: 18px;
-      height: 18px;
-      stroke: #ffffff;
+    .empty-desc {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      color: #999999;
+      max-width: 260px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -532,97 +347,145 @@
 
     <!-- TOP BAR -->
     <div class="topbar">
-      <div class="icon-btn" id="backBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
-      </div>
-      <div class="topbar-title">Buy Data</div>
-    </div>
-
-    <!-- SELECT NETWORK -->
-    <div class="section-head">Select Network</div>
-    <div class="carousel-wrap">
-      <div class="carousel" id="networkCarousel">
-        <div class="network-card" data-network="MTN">
-          <div class="network-logo">
-            <img src="mtn.png" alt="MTN" onerror="this.style.display='none'; this.parentElement.textContent='MTN';" />
-          </div>
-        </div>
-        <div class="network-card" data-network="Glo">
-          <div class="network-logo">
-            <img src="glo.png" alt="Glo" onerror="this.style.display='none'; this.parentElement.textContent='Glo';" />
-          </div>
-        </div>
-        <div class="network-card" data-network="Airtel">
-          <div class="network-logo">
-            <img src="airtel.png" alt="Airtel" onerror="this.style.display='none'; this.parentElement.textContent='Airtel';" />
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="carousel-dots" id="carouselDots"></div>
-
-    <!-- FORM -->
-    <div class="form-card">
-
-      <!-- PLAN TYPE -->
-      <div>
-        <span class="field-label">Plan Type</span>
-        <div class="plan-tabs" id="planTabs">
-          <div class="plan-tab selected" data-plan="sme">SME</div>
-          <div class="plan-tab" data-plan="corporate">Corporate Gifting</div>
-          <div class="plan-tab" data-plan="gifting">Gifting</div>
-        </div>
-      </div>
-
-      <!-- DATA PLAN -->
-      <div>
-        <span class="field-label">Data Plan</span>
-        <div class="select-wrap">
-          <select id="dataPlanSelect">
-            <option value="">Select data plan</option>
-          </select>
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 9l6 6 6-6" />
+      <div class="topbar-left">
+        <div class="icon-btn" id="backBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6" />
           </svg>
         </div>
+        <div class="topbar-title">Notifications</div>
       </div>
+      <div class="mark-read-btn" id="markReadBtn">Mark all read</div>
+    </div>
 
-      <!-- PHONE NUMBER -->
-      <div>
-        <span class="field-label">Phone Number</span>
-        <input type="tel" class="text-input" id="phoneInput" placeholder="08012345678" maxlength="11" inputmode="numeric" />
-      </div>
+    <!-- TODAY -->
+    <div class="section-head">Today</div>
+    <div class="notif-list" id="notifListToday">
 
-      <!-- BYPASS TOGGLE -->
-      <div class="toggle-row">
-        <div class="toggle-text">
-          <span class="toggle-title">Bypass Number Validation</span>
-          <span class="toggle-sub">Use if number lookup fails</span>
+      <div class="notif-card unread" data-id="1">
+        <div class="notif-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="6" rx="8" ry="3" />
+            <path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
+            <path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" />
+          </svg>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="bypassToggle" />
-          <span class="switch-slider"></span>
-        </label>
+        <div class="notif-body">
+          <span class="notif-title">Wallet Funded Successfully</span>
+          <span class="notif-desc">Your wallet was credited with ₦5,000 via Paystack.</span>
+          <span class="notif-time">Today, 6:15 PM</span>
+        </div>
       </div>
 
-      <!-- TRANSACTION PIN -->
-      <div>
-        <span class="field-label">Transaction PIN</span>
-        <input type="password" class="text-input pin-input" id="pinInput" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+      <div class="notif-card unread" data-id="2">
+        <div class="notif-icon-wrap dark">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="10" rx="2" />
+            <path d="M6 11h.01M10 11h.01M14 11h.01" />
+          </svg>
+        </div>
+        <div class="notif-body">
+          <span class="notif-title">Data Purchase Successful</span>
+          <span class="notif-desc">2GB SME data was delivered to 0801•••4567 on MTN.</span>
+          <span class="notif-time">Today, 10:42 AM</span>
+        </div>
+      </div>
+
+      <div class="notif-card" data-id="3">
+        <div class="notif-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+        </div>
+        <div class="notif-body">
+          <span class="notif-title">Security Alert</span>
+          <span class="notif-desc">A new login was detected on your account from a Chrome browser.</span>
+          <span class="notif-time">Today, 9:02 AM</span>
+        </div>
       </div>
 
     </div>
 
-    <!-- SUBMIT -->
-    <button class="submit-btn" id="purchaseBtn" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="7" width="20" height="10" rx="2" />
-        <path d="M6 11h.01M10 11h.01M14 11h.01" />
-      </svg>
-      Purchase Data
-    </button>
+    <!-- YESTERDAY -->
+    <div class="section-head spaced">Yesterday</div>
+    <div class="notif-list" id="notifListYesterday">
+
+      <div class="notif-card" data-id="4">
+        <div class="notif-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
+            <path d="M12 6v12" />
+          </svg>
+        </div>
+        <div class="notif-body">
+          <span class="notif-title">Student Perk Application Received</span>
+          <span class="notif-desc">Your request has been filed for review. This usually takes 1 hour or less.</span>
+          <span class="notif-time">Yesterday, 2:08 PM</span>
+        </div>
+      </div>
+
+      <div class="notif-card" data-id="5">
+        <div class="notif-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
+        </div>
+        <div class="notif-body">
+          <span class="notif-title">Scheduled Maintenance</span>
+          <span class="notif-desc">VTMoo services may be briefly unavailable between 1:00 AM and 2:00 AM.</span>
+          <span class="notif-time">Yesterday, 11:30 AM</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- EARLIER -->
+    <div class="section-head spaced">Earlier</div>
+    <div class="notif-list" id="notifListEarlier">
+
+      <div class="notif-card" data-id="6">
+        <div class="notif-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="10" rx="2" />
+            <path d="M6 11h.01M10 11h.01M14 11h.01" />
+          </svg>
+        </div>
+        <div class="notif-body">
+          <span class="notif-title">Data Purchase Successful</span>
+          <span class="notif-desc">1GB Gifting data was delivered to 0701•••2233 on Glo.</span>
+          <span class="notif-time">Mon, 4:50 PM</span>
+        </div>
+      </div>
+
+      <div class="notif-card" data-id="7">
+        <div class="notif-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
+          </svg>
+        </div>
+        <div class="notif-body">
+          <span class="notif-title">Welcome to VTMoo</span>
+          <span class="notif-desc">Your account has been created successfully. Fund your wallet to get started.</span>
+          <span class="notif-time">Mon, 8:00 AM</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 01-3.46 0" />
+        </svg>
+      </div>
+      <div class="empty-title">You're all caught up</div>
+      <div class="empty-desc">No new notifications right now. We'll let you know when something needs your attention.</div>
+    </div>
 
   </div>
 
@@ -725,191 +588,30 @@
       });
     })();
 
-    /* ── NETWORK CAROUSEL ── */
-    const DATA_PLANS = {
-      sme: {
-        MTN: [
-          { value: '1gb_sme', label: '1GB — 30 Days — ₦280' },
-          { value: '2gb_sme', label: '2GB — 30 Days — ₦560' },
-          { value: '5gb_sme', label: '5GB — 30 Days — ₦1,400' },
-          { value: '10gb_sme', label: '10GB — 30 Days — ₦2,800' }
-        ],
-        Glo: [
-          { value: '1gb_sme_glo', label: '1GB — 30 Days — ₦230' },
-          { value: '2gb_sme_glo', label: '2GB — 30 Days — ₦460' },
-          { value: '5gb_sme_glo', label: '5GB — 30 Days — ₦1,150' },
-          { value: '10gb_sme_glo', label: '10GB — 30 Days — ₦2,300' }
-        ],
-        Airtel: [
-          { value: '1gb_sme_air', label: '1GB — 30 Days — ₦260' },
-          { value: '2gb_sme_air', label: '2GB — 30 Days — ₦520' },
-          { value: '5gb_sme_air', label: '5GB — 30 Days — ₦1,300' },
-          { value: '10gb_sme_air', label: '10GB — 30 Days — ₦2,600' }
-        ]
-      },
-      corporate: {
-        MTN: [
-          { value: '1gb_corp', label: '1GB — 30 Days — ₦300' },
-          { value: '2gb_corp', label: '2GB — 30 Days — ₦600' },
-          { value: '5gb_corp', label: '5GB — 30 Days — ₦1,500' },
-          { value: '10gb_corp', label: '10GB — 30 Days — ₦3,000' }
-        ],
-        Glo: [
-          { value: '1gb_corp_glo', label: '1GB — 30 Days — ₦250' },
-          { value: '2gb_corp_glo', label: '2GB — 30 Days — ₦500' },
-          { value: '5gb_corp_glo', label: '5GB — 30 Days — ₦1,250' },
-          { value: '10gb_corp_glo', label: '10GB — 30 Days — ₦2,500' }
-        ],
-        Airtel: [
-          { value: '1gb_corp_air', label: '1GB — 30 Days — ₦280' },
-          { value: '2gb_corp_air', label: '2GB — 30 Days — ₦560' },
-          { value: '5gb_corp_air', label: '5GB — 30 Days — ₦1,400' },
-          { value: '10gb_corp_air', label: '10GB — 30 Days — ₦2,800' }
-        ]
-      },
-      gifting: {
-        MTN: [
-          { value: '1gb_gift', label: '1GB — 30 Days — ₦350' },
-          { value: '2gb_gift', label: '2GB — 30 Days — ₦700' },
-          { value: '5gb_gift', label: '5GB — 30 Days — ₦1,750' },
-          { value: '10gb_gift', label: '10GB — 30 Days — ₦3,500' }
-        ],
-        Glo: [
-          { value: '1gb_gift_glo', label: '1GB — 30 Days — ₦300' },
-          { value: '2gb_gift_glo', label: '2GB — 30 Days — ₦600' },
-          { value: '5gb_gift_glo', label: '5GB — 30 Days — ₦1,500' },
-          { value: '10gb_gift_glo', label: '10GB — 30 Days — ₦3,000' }
-        ],
-        Airtel: [
-          { value: '1gb_gift_air', label: '1GB — 30 Days — ₦330' },
-          { value: '2gb_gift_air', label: '2GB — 30 Days — ₦660' },
-          { value: '5gb_gift_air', label: '5GB — 30 Days — ₦1,650' },
-          { value: '10gb_gift_air', label: '10GB — 30 Days — ₦3,300' }
-        ]
-      }
-    };
-
-    (function () {
-      const carousel = document.getElementById('networkCarousel');
-      const cards = Array.from(carousel.querySelectorAll('.network-card'));
-      const dotsWrap = document.getElementById('carouselDots');
-      const planTabs = Array.from(document.querySelectorAll('.plan-tab'));
-      const dataPlanSelect = document.getElementById('dataPlanSelect');
-      const phoneInput = document.getElementById('phoneInput');
-      const bypassToggle = document.getElementById('bypassToggle');
-      const pinInput = document.getElementById('pinInput');
-      const purchaseBtn = document.getElementById('purchaseBtn');
-
-      let currentNetwork = cards[0].dataset.network;
-      let currentPlanType = 'sme';
-
-      // build dots
-      cards.forEach((_, i) => {
-        const dot = document.createElement('div');
-        dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
-        dotsWrap.appendChild(dot);
-      });
-      const dots = Array.from(dotsWrap.children);
-
-      function setActiveCard(index) {
-        cards.forEach((c, i) => c.classList.toggle('active', i === index));
-        dots.forEach((d, i) => d.classList.toggle('active', i === index));
-        currentNetwork = cards[index].dataset.network;
-        populateDataPlans();
-        validateForm();
-      }
-
-      function populateDataPlans() {
-        const plans = (DATA_PLANS[currentPlanType] && DATA_PLANS[currentPlanType][currentNetwork]) || [];
-        dataPlanSelect.innerHTML = '<option value="">Select data plan</option>';
-        plans.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.value;
-          opt.textContent = p.label;
-          dataPlanSelect.appendChild(opt);
-        });
-        dataPlanSelect.disabled = plans.length === 0;
-      }
-
-      // click to select
-      cards.forEach((card, i) => {
-        card.addEventListener('click', () => {
-          setActiveCard(i);
-          card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        });
-      });
-
-      // scroll-based active detection
-      let scrollTimeout;
-      carousel.addEventListener('scroll', () => {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          const center = carousel.scrollLeft + carousel.clientWidth / 2;
-          let closestIndex = 0;
-          let closestDist = Infinity;
-          cards.forEach((card, i) => {
-            const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-            const dist = Math.abs(cardCenter - center);
-            if (dist < closestDist) {
-              closestDist = dist;
-              closestIndex = i;
-            }
-          });
-          setActiveCard(closestIndex);
-        }, 80);
-      });
-
-      // plan type tabs
-      planTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          planTabs.forEach(t => t.classList.remove('selected'));
-          tab.classList.add('selected');
-          currentPlanType = tab.dataset.plan;
-          populateDataPlans();
-          validateForm();
-        });
-      });
-
-      function validateForm() {
-        const phoneOk = bypassToggle.checked || /^0\d{10}$/.test(phoneInput.value.trim());
-        const planOk = !!dataPlanSelect.value;
-        const pinOk = /^\d{4}$/.test(pinInput.value.trim());
-        purchaseBtn.disabled = !(phoneOk && planOk && pinOk);
-      }
-
-      dataPlanSelect.addEventListener('change', validateForm);
-      phoneInput.addEventListener('input', () => {
-        phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11);
-        validateForm();
-      });
-      bypassToggle.addEventListener('change', validateForm);
-      pinInput.addEventListener('input', () => {
-        pinInput.value = pinInput.value.replace(/\D/g, '').slice(0, 4);
-        validateForm();
-      });
-
-      purchaseBtn.addEventListener('click', () => {
-        if (purchaseBtn.disabled) return;
-        const planText = dataPlanSelect.options[dataPlanSelect.selectedIndex].textContent;
-        alert('Purchasing ' + planText + ' on ' + currentNetwork + ' for ' + phoneInput.value + '...');
-      });
-
-      // init
-      setActiveCard(0);
-
-      // center first card on load
-      requestAnimationFrame(() => {
-        const first = cards[0];
-        carousel.scrollLeft = first.offsetLeft - (carousel.clientWidth - first.offsetWidth) / 2;
-      });
-    })();
-
     /* ── BACK BUTTON ── */
     document.getElementById('backBtn').addEventListener('click', () => {
       if (window.history.length > 1) {
         window.history.back();
       }
     });
+
+    /* ── MARK AS READ ── */
+    (function () {
+      const markReadBtn = document.getElementById('markReadBtn');
+      const cards = document.querySelectorAll('.notif-card');
+
+      // tapping a card marks it read
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          card.classList.remove('unread');
+        });
+      });
+
+      // mark all read button
+      markReadBtn.addEventListener('click', () => {
+        cards.forEach(card => card.classList.remove('unread'));
+      });
+    })();
   </script>
 </body>
 
