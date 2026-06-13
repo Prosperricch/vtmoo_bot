@@ -2,7 +2,8 @@
 import os
 import re
 import threading
-from flask import Flask, render_template, request, jsonify
+from functools import wraps
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from datetime import datetime
@@ -11,7 +12,7 @@ import telebot
 from telebot import types
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', 'vtmoo-dev-secret-change-me')
 
 # ===================== DATABASE CONFIG =====================
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
@@ -26,6 +27,7 @@ db = SQLAlchemy(app)
 # ===================== CONFIG =====================
 BOT_TOKEN = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
 PUBLIC_URL = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -213,6 +215,16 @@ def relative_time(dt):
     return dt.strftime('%d %b %Y')
 
 
+def admin_required(view_func):
+    """Require an authenticated admin session for the wrapped view."""
+    @wraps(view_func)
+    def wrapped(*args, **kwargs):
+        if not session.get('is_admin'):
+            return redirect(url_for('admin_login'))
+        return view_func(*args, **kwargs)
+    return wrapped
+
+
 # ===================== BOT COMMANDS =====================
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -261,7 +273,7 @@ LOADER_HTML = """
   </style>
 </head>
 <body>
-  <p id="msg">Loading...</p>
+  <p id="msg">Loading dashboard...</p>
   <script>
     (function () {
       try {
@@ -415,18 +427,98 @@ def perks():
         return f"Template error: {e}", 500
 
 
-@app.route('/data')
-def data_page():
-    telegram_id_str = request.args.get('telegram_id')
-    user, error = get_user_or_404(telegram_id_str)
-    if error:
-        return error
+# ===================== ADMIN ROUTES =====================
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if session.get('is_admin'):
+        return redirect(url_for('admin_welcome'))
 
-    try:
-        return render_template('data.html', user=user)
-    except Exception as e:
-        app.logger.exception("Data render error")
-        return f"Template error: {e}", 500
+    error = None
+    if request.method == 'POST':
+        password = (request.form.get('password') or '').strip()
+        if password and password == ADMIN_PASSWORD:
+            session['is_admin'] = True
+            return redirect(url_for('admin_welcome'))
+        error = "Incorrect password. Please try again."
+
+    return render_template('admin/login.html', error=error)
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    return redirect(url_for('admin_login'))
+
+
+@app.route('/admin')
+def admin_root():
+    return redirect(url_for('admin_welcome'))
+
+
+@app.route('/admin/welcome')
+@admin_required
+def admin_welcome():
+    total_users = User.query.count()
+    total_balance = db.session.query(db.func.coalesce(db.func.sum(User.balance), 0.0)).scalar()
+    pending_perks = PerkApplication.query.filter_by(status='pending').count()
+    unread_notifications_total = Notification.query.filter_by(read=False).count()
+    recent_users = User.query.order_by(User.created_at.desc()).limit(6).all()
+
+    return render_template(
+        'admin/welcome.html',
+        active_page='welcome',
+        page_title='Welcome',
+        page_crumb='ADMIN / WELCOME',
+        total_users=total_users,
+        total_balance=total_balance,
+        pending_perks=pending_perks,
+        unread_notifications_total=unread_notifications_total,
+        recent_users=recent_users
+    )
+
+
+@app.route('/admin/network')
+@admin_required
+def admin_network():
+    return render_template(
+        'admin/network.html',
+        active_page='network',
+        page_title='Network',
+        page_crumb='ADMIN / NETWORK'
+    )
+
+
+@app.route('/admin/data')
+@admin_required
+def admin_data():
+    return render_template(
+        'admin/data.html',
+        active_page='data',
+        page_title='Data Plans',
+        page_crumb='ADMIN / DATA PLANS'
+    )
+
+
+@app.route('/admin/perks')
+@admin_required
+def admin_perks():
+    return render_template(
+        'admin/perks.html',
+        active_page='perks',
+        page_title='Perks',
+        page_crumb='ADMIN / PERKS'
+    )
+
+
+@app.route('/admin/users-code')
+@admin_required
+def admin_users_code():
+    return render_template(
+        'admin/users_code.html',
+        active_page='users_code',
+        page_title='Add Users Code',
+        page_crumb='ADMIN / USERS CODE'
+    )
 
 
 # ===================== API ROUTES =====================
@@ -539,63 +631,6 @@ def apply_for_perks():
     )
 
     return jsonify(success=True, message="Application submitted! We'll review it shortly.")
-
-
-@app.route('/api/data/purchase', methods=['POST'])
-def purchase_data():
-    data = request.get_json(silent=True) or {}
-    telegram_id = get_telegram_id_from_request(data)
-    network = (data.get('network') or '').strip()
-    plan_name = (data.get('plan_name') or '').strip()
-    amount = data.get('amount')
-    phone = (data.get('phone') or '').strip()
-    pin = (data.get('pin') or '').strip()
-
-    if telegram_id is None:
-        return jsonify(success=False, message="Missing telegram_id"), 400
-
-    if not network or not plan_name or amount is None or not phone:
-        return jsonify(success=False, message="Please fill in all fields."), 400
-
-    if not re.match(r'^\d{4}$', pin):
-        return jsonify(success=False, message="PIN must be exactly 4 digits."), 400
-
-    try:
-        amount = float(amount)
-    except (TypeError, ValueError):
-        return jsonify(success=False, message="Invalid amount."), 400
-
-    user = User.query.filter_by(telegram_id=telegram_id).first()
-    if not user:
-        return jsonify(success=False, message="User not found"), 404
-
-    if not user.check_pin(pin):
-        return jsonify(success=False, message="Incorrect transaction PIN."), 400
-
-    if (user.balance or 0) < amount:
-        return jsonify(success=False, message="Insufficient wallet balance."), 400
-
-    user.balance = round((user.balance or 0) - amount, 2)
-    user.add_transaction(
-        amount=-amount,
-        transaction_type="data",
-        description=f"{network} — {plan_name}",
-        status="success"
-    )
-    db.session.commit()
-
-    create_notification(
-        telegram_id,
-        "Data Purchase Successful",
-        f"{plan_name} was delivered to {phone} on {network}.",
-        ntype="success"
-    )
-
-    return jsonify(
-        success=True,
-        message="Data purchase successful!",
-        balance=user.balance
-    )
 
 
 # ===================== FLASK SETUP =====================
