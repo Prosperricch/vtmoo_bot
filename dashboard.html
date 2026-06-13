@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>VTMoo — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      width: 100%;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-family: 'Barlow Condensed', sans-serif;
+      background: #ffffff;
+      color: #000000;
+    }
+
+    /* ── COW PATTERN BG ── */
+    #bg-canvas-wrapper {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    #bg-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    #bg-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 75%);
+    }
+
+    /* ── PAGE FRAME ── */
+    .app {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 22px 20px 110px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOP BAR — notification icon only ── */
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.05s forwards;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.12);
+      border-color: rgba(0, 0, 0, 0.25);
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: #1a1a1a;
+    }
+
+    .notif-dot {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 1.5px solid #ffffff;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── BALANCE CARD ── */
+    .balance-card {
+      border-radius: 20px;
+      padding: 24px 22px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.12s forwards;
+      position: relative;
+    }
+
+    .balance-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .balance-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 500;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      color: #666666;
+      text-transform: none;
+    }
+
+    .balance-label-row svg {
+      width: 18px;
+      height: 18px;
+      stroke: #999999;
+    }
+
+    .balance-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .balance-amount {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: clamp(28px, 7.5vw, 34px);
+      color: #000000;
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+
+    .balance-decimals {
+      color: #999999;
+    }
+
+    .balance-naira {
+      font-weight: 800;
+      color: #000000;
+      margin-right: 2px;
+    }
+
+    /* ── FUND WALLET BUTTON ── */
+    .fund-wallet-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      color: #ffffff;
+      background: #000000;
+      border: none;
+      border-radius: 100px;
+      padding: 11px 18px;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .fund-wallet-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: #ffffff;
+    }
+
+    .fund-wallet-btn:hover {
+      transform: translateY(-2px);
+      background: #333333;
+    }
+
+    .fund-wallet-btn:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    /* ── SECTION HEADERS ── */
+    .section-head {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #555555;
+      margin: 32px 0 14px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.2s forwards;
+    }
+
+    /* ── QUICK ACTIONS — horizontal scroll boxes ── */
+    .quick-actions {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: none;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.28s forwards;
+    }
+
+    .quick-actions::-webkit-scrollbar {
+      display: none;
+    }
+
+    .action-card {
+      flex: 0 0 auto;
+      width: 152px;
+      min-height: 132px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .action-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-card:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    .action-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-icon.data {
+      background: #e0e0e0;
+    }
+
+    .action-icon.perks {
+      background: #e0e0e0;
+    }
+
+    .action-icon svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    .action-icon.data svg {
+      stroke: #1a1a1a;
+    }
+
+    .action-icon.perks svg {
+      stroke: #1a1a1a;
+    }
+
+    .action-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      color: #000000;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      margin-top: 14px;
+    }
+
+    .action-sub {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #888888;
+      margin-top: 4px;
+    }
+
+    /* ── RECENT ACTIVITY (filler content for scroll context) ── */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.36s forwards;
+    }
+
+    .activity-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(240, 240, 240, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 14px;
+      padding: 14px 16px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .activity-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(200, 200, 200, 0.4);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .activity-icon svg {
+      width: 17px;
+      height: 17px;
+      stroke: #1a1a1a;
+    }
+
+    .activity-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .activity-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: #000000;
+      letter-spacing: -0.01em;
+    }
+
+    .activity-sub {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #777777;
+    }
+
+    .activity-amount {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: #1a1a1a;
+      flex-shrink: 0;
+    }
+
+    .activity-amount.negative {
+      color: #333333;
+    }
+
+    /* ── BOTTOM GLASS NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      width: calc(100% - 40px);
+      max-width: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 10px 14px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 9px 18px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+
+    .nav-item svg {
+      width: 21px;
+      height: 21px;
+      stroke: #888888;
+      transition: stroke 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .nav-item span {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #888888;
+      transition: color 0.25s ease;
+    }
+
+    .nav-item.active {
+      background: rgba(0, 0, 0, 0.08);
+      box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.1);
+      transform: translateY(-3px);
+    }
+
+    .nav-item.active svg {
+      stroke: #000000;
+      transform: scale(1.08);
+    }
+
+    .nav-item.active span {
+      color: #000000;
+    }
+
+    @media (max-width: 380px) {
+      .nav-item {
+        padding: 9px 12px;
+      }
+      .action-card {
+        width: 142px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="bg-canvas-wrapper">
+    <canvas id="bg-canvas"></canvas>
+  </div>
+  <div id="bg-overlay"></div>
+
+  <div class="app">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="icon-btn" id="notifBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 01-3.46 0" />
+        </svg>
+        <div class="notif-dot"></div>
+      </div>
+    </div>
+
+    <!-- BALANCE CARD -->
+    <div class="balance-card">
+      <div class="balance-label-row">
+        <span class="balance-label">Balance</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </div>
+      <div class="balance-row">
+        <div class="balance-amount"><span class="balance-naira">₦</span>24,850<span class="balance-decimals">.00</span></div>
+        <button class="fund-wallet-btn" id="fundWalletBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Fund Wallet
+        </button>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="section-head">Quick Actions</div>
+    <div class="quick-actions">
+      <div class="action-card" id="buyDataCard">
+        <div class="action-icon data">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="10" rx="2" />
+            <path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01" />
+            <path d="M2 17l4 4M22 17l-4 4" />
+          </svg>
+        </div>
+        <div>
+          <div class="action-title">Buy Data</div>
+          <div class="action-sub">All Networks</div>
+        </div>
+      </div>
+
+      <div class="action-card" id="perksCard">
+        <div class="action-icon perks">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
+            <path d="M12 6v12" />
+          </svg>
+        </div>
+        <div>
+          <div class="action-title">Student Perks</div>
+          <div class="action-sub">Apply Now</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT ACTIVITY -->
+    <div class="section-head">Recent Activity</div>
+    <div class="activity-list">
+      <div class="activity-row">
+        <div class="activity-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="10" rx="2" />
+            <path d="M6 11h.01M10 11h.01M14 11h.01" />
+          </svg>
+        </div>
+        <div class="activity-info">
+          <span class="activity-title">MTN — 2GB SME</span>
+          <span class="activity-sub">Today, 10:42 AM</span>
+        </div>
+        <span class="activity-amount negative">-₦900</span>
+      </div>
+
+      <div class="activity-row">
+        <div class="activity-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="6" rx="8" ry="3" />
+            <path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
+            <path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" />
+          </svg>
+        </div>
+        <div class="activity-info">
+          <span class="activity-title">Wallet Funded</span>
+          <span class="activity-sub">Yesterday, 6:15 PM</span>
+        </div>
+        <span class="activity-amount">+₦5,000</span>
+      </div>
+
+      <div class="activity-row">
+        <div class="activity-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
+          </svg>
+        </div>
+        <div class="activity-info">
+          <span class="activity-title">Student Perk Applied</span>
+          <span class="activity-sub">Mon, 2:08 PM</span>
+        </div>
+        <span class="activity-amount">Pending</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM GLASS NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" data-nav="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 3l9 6.5" />
+        <path d="M5 9v11h14V9" />
+      </svg>
+      <span>Home</span>
+    </div>
+
+    <div class="nav-item" data-nav="perks">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
+        <path d="M12 6v12" />
+      </svg>
+      <span>Perks</span>
+    </div>
+
+    <div class="nav-item" data-nav="notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 01-3.46 0" />
+      </svg>
+      <span>Alerts</span>
+    </div>
+
+    <div class="nav-item" data-nav="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
+      </svg>
+      <span>Profile</span>
+    </div>
+  </nav>
+
+  <script>
+    /* ── COW PATTERN BG ── */
+    function drawCowPattern(ctx, width, height, seed) {
+      const BLACK = '#000000';
+      const WHITE = '#ffffff';
+
+      function mulberry32(a) {
+        return function () {
+          var t = a += 0x6D2B79F5;
+          t = Math.imul(t ^ t >>> 15, t | 1);
+          t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+          return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+      }
+
+      const rand = mulberry32(seed || 12345);
+
+      ctx.fillStyle = WHITE;
+      ctx.fillRect(0, 0, width, height);
+
+      const numBlobs = 25;
+
+      for (let i = 0; i < numBlobs; i++) {
+        const cx = rand() * width;
+        const cy = rand() * height;
+        const baseRadius = 80 + rand() * 200;
+
+        ctx.fillStyle = BLACK;
+        ctx.beginPath();
+
+        const points = 8 + Math.floor(rand() * 6);
+        const coords = [];
+
+        for (let p = 0; p < points; p++) {
+          const angle = (p / points) * Math.PI * 2;
+          const r = baseRadius * (0.6 + rand() * 0.8);
+          const wobble = (rand() - 0.5) * 40;
+          coords.push({
+            x: cx + Math.cos(angle) * r + wobble,
+            y: cy + Math.sin(angle) * r + wobble
+          });
+        }
+
+        for (let p = 0; p < coords.length; p++) {
+          const curr = coords[p];
+          const next = coords[(p + 1) % coords.length];
+          const midX = (curr.x + next.x) / 2;
+          const midY = (curr.y + next.y) / 2;
+          if (p === 0) {
+            ctx.moveTo(midX, midY);
+          } else {
+            ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
+          }
+        }
+
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      for (let i = 0; i < 15; i++) {
+        const sx = rand() * width;
+        const sy = rand() * height;
+        const sr = 10 + rand() * 30;
+        ctx.fillStyle = BLACK;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    (function () {
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d', { alpha: false });
+
+      function resize() {
+        const w = Math.max(window.screen.width, window.innerWidth, document.documentElement.clientWidth);
+        const h = Math.max(window.screen.height, window.innerHeight, document.documentElement.clientHeight);
+
+        canvas.width = w;
+        canvas.height = h;
+
+        const wrapper = document.getElementById('bg-canvas-wrapper');
+        wrapper.style.width = w + 'px';
+        wrapper.style.height = h + 'px';
+
+        drawCowPattern(ctx, w, h, 12345);
+      }
+
+      resize();
+
+      window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', function () {
+        setTimeout(resize, 300);
+      });
+      window.visualViewport && window.visualViewport.addEventListener('resize', function () {
+        setTimeout(resize, 100);
+      });
+    })();
+
+    /* ── BOTTOM NAV ACTIVE STATE ── */
+    (function () {
+      const items = document.querySelectorAll('.nav-item');
+      items.forEach(item => {
+        item.addEventListener('click', () => {
+          items.forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+        });
+      });
+    })();
+  </script>
+</body>
+
+</html>
