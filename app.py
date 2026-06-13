@@ -13,17 +13,18 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # ===================== DATABASE CONFIG =====================
-# HARDCODED FOR LOCAL TESTING ONLY — move to env vars before production
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.hmhztencjtycadsmodif:V9syIHsOdN015qNf@aws-1-eu-west-1.pooler.supabase.com:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL',
+    'postgresql://postgres.hmhztencjtycadsmodif:V9syIHsOdN015qNf@aws-1-eu-west-1.pooler.supabase.com:5432/postgres'
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SQLALCHEMY_ECHO'] = False
 
 db = SQLAlchemy(app)
 
 # ===================== CONFIG =====================
-# HARDCODED FOR LOCAL TESTING ONLY — move to env vars before production
-BOT_TOKEN = "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY"
-PUBLIC_URL = "https://your-ngrok-url.ngrok-free.app/dashboard?telegram_id=5966603094"  # ← update this after starting ngrok
+BOT_TOKEN = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
+PUBLIC_URL = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -187,12 +188,12 @@ def run_bot():
     bot.infinity_polling()
 
 
+# Start the bot polling thread (works for both local run and gunicorn on Render)
+bot_thread = threading.Thread(target=run_bot)
+bot_thread.daemon = True
+bot_thread.start()
+
+
 if __name__ == '__main__':
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-
     print("🚀 Flask + Telegram Bot Started!")
-
-    # Use debug=False to avoid multiple bot instances
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
