@@ -5,535 +5,289 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>VTMoo — Profile</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@400;500&display=swap"
     rel="stylesheet" />
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
     body {
-      width: 100%;
-      min-height: 100vh;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-family: 'Barlow Condensed', sans-serif;
-      background: #ffffff;
-      color: #000000;
+      width: 100%; min-height: 100vh; overflow-x: hidden;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      font-family: 'Barlow Condensed', sans-serif; background: #ffffff; color: #000000;
     }
 
     /* ── COW PATTERN BG ── */
-    #bg-canvas-wrapper {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      min-width: 100%;
-      min-height: 100%;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
+    #bg-canvas-wrapper { position: fixed; inset: 0; width: 100vw; height: 100vh; min-width: 100%; min-height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
+    #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+    #bg-overlay { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 75%); }
 
-    #bg-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-    }
+    .app { position: relative; z-index: 10; min-height: 100vh; max-width: 480px; margin: 0 auto; padding: 22px 20px 110px; display: flex; flex-direction: column; }
 
-    #bg-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 75%);
-    }
-
-    /* ── PAGE FRAME ── */
-    .app {
-      position: relative;
-      z-index: 10;
-      min-height: 100vh;
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 22px 20px 60px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(14px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ── TOP BAR ── */
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 28px;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.05s forwards;
+    .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; opacity: 0; animation: fadeUp 0.6s ease 0.05s forwards; }
+    .back-btn {
+      width: 44px; height: 44px; border-radius: 14px; background: rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.15); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent; text-decoration: none; flex-shrink: 0;
     }
-
-    .icon-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      background: rgba(0, 0, 0, 0.08);
-      border: 1px solid rgba(0, 0, 0, 0.15);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      -webkit-tap-highlight-color: transparent;
-      flex-shrink: 0;
-    }
-
-    .icon-btn:hover {
-      background: rgba(0, 0, 0, 0.12);
-      border-color: rgba(0, 0, 0, 0.25);
-    }
-
-    .icon-btn svg {
-      width: 20px;
-      height: 20px;
-      stroke: #1a1a1a;
-    }
-
-    .topbar-title {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 800;
-      font-size: 20px;
-      letter-spacing: -0.01em;
-      color: #000000;
-    }
+    .back-btn:hover { background: rgba(0,0,0,0.12); border-color: rgba(0,0,0,0.25); }
+    .back-btn svg { width: 20px; height: 20px; stroke: #1a1a1a; }
+    .page-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em; }
+    .page-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #777777; margin-top: 2px; }
 
     /* ── PROFILE CARD ── */
     .profile-card {
-      border-radius: 20px;
-      padding: 32px 22px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.12s forwards;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 16px;
+      display: flex; align-items: center; gap: 16px; border-radius: 20px; padding: 22px;
+      background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.12); margin-bottom: 24px;
+      opacity: 0; animation: fadeUp 0.6s ease 0.1s forwards;
     }
-
     .avatar {
-      width: 84px;
-      height: 84px;
-      border-radius: 50%;
-      background: #000000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+      width: 60px; height: 60px; border-radius: 50%; background: #000000; color: #ffffff;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em;
     }
+    .profile-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .profile-name { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+    .profile-username { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 13px; color: #888888; }
+    .verified-badge {
+      display: inline-flex; align-items: center; gap: 4px; font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 600; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      margin-top: 4px; padding: 4px 10px; border-radius: 100px; width: fit-content;
+    }
+    .verified-badge.yes { background: rgba(28,166,76,0.12); color: #1ca64c; }
+    .verified-badge.no { background: rgba(255,153,0,0.12); color: #cc7a00; }
+    .verified-badge svg { width: 12px; height: 12px; }
 
-    .avatar svg {
-      width: 40px;
-      height: 40px;
-      stroke: #ffffff;
+    /* ── SECTION ── */
+    .section-head {
+      font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: #000000; margin: 0 0 14px;
+      opacity: 0; animation: fadeUp 0.6s ease 0.16s forwards;
     }
-
-    .profile-name {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 900;
-      font-size: 24px;
-      letter-spacing: -0.01em;
-      color: #000000;
-    }
-
-    .account-type-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 800;
-      font-size: 12px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: #ffffff;
-      background: #000000;
-      border-radius: 999px;
-      padding: 9px 18px;
-    }
-
-    .account-type-badge svg {
-      width: 14px;
-      height: 14px;
-      stroke: #ffffff;
-    }
+    .section-head.delayed { animation: fadeUp 0.6s ease 0.3s forwards; margin-top: 28px; }
 
     /* ── INFO LIST ── */
-    .info-section {
-      margin-top: 24px;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.2s forwards;
-    }
-
-    .section-head {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 800;
-      font-size: 13px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #000000;
-      margin: 0 0 14px;
-    }
-
-    .section-head.spaced {
-      margin-top: 24px;
-    }
-
-    .info-card {
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
-      overflow: hidden;
-    }
-
+    .info-list { display: flex; flex-direction: column; gap: 10px; opacity: 0; animation: fadeUp 0.6s ease 0.2s forwards; }
     .info-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 18px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      background: rgba(240,240,240,0.6); border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     }
-
-    .info-row + .info-row {
-      border-top: 1px solid rgba(0, 0, 0, 0.08);
+    .info-label { display: flex; align-items: center; gap: 12px; }
+    .info-icon {
+      width: 36px; height: 36px; border-radius: 50%; background: rgba(200,200,200,0.4);
+      border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
+    .info-icon svg { width: 16px; height: 16px; stroke: #1a1a1a; }
+    .info-text { display: flex; flex-direction: column; gap: 1px; }
+    .info-key { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #999999; }
+    .info-value { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 14px; color: #000000; }
 
-    .info-row-label {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 14px;
-      color: #000000;
+    /* ── PIN UPDATE ── */
+    .pin-form { display: flex; flex-direction: column; gap: 10px; opacity: 0; animation: fadeUp 0.6s ease 0.36s forwards; }
+    .field-input {
+      width: 100%; font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 16px;
+      letter-spacing: 0.3em; color: #000000; background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 14px; padding: 14px 16px; outline: none; transition: border-color 0.2s ease; text-align: center;
     }
+    .field-input:focus { border-color: #000000; }
+    .field-input::placeholder { color: #aaaaaa; font-weight: 500; letter-spacing: 0.3em; }
 
-    .info-row-label svg {
-      width: 18px;
-      height: 18px;
-      stroke: #999999;
-      flex-shrink: 0;
+    .submit-btn {
+      width: 100%; font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 15px;
+      letter-spacing: 0.04em; color: #ffffff; background: #000000; border: none;
+      border-radius: 100px; padding: 16px; cursor: pointer; text-transform: uppercase;
+      transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1); -webkit-tap-highlight-color: transparent;
     }
+    .submit-btn:hover { transform: translateY(-2px); background: #333333; }
+    .submit-btn:active { transform: translateY(0) scale(0.98); }
+    .submit-btn:disabled { background: #cccccc; cursor: not-allowed; transform: none; }
 
-    .info-row-value {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 800;
-      font-size: 14px;
-      color: #000000;
-      text-align: right;
+    .form-message {
+      margin-top: 6px; padding: 12px 16px; border-radius: 12px;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 13px;
+      text-align: center; display: none;
     }
+    .form-message.success { display: block; background: rgba(28,166,76,0.12); color: #1ca64c; border: 1px solid rgba(28,166,76,0.25); }
+    .form-message.error { display: block; background: rgba(255,0,0,0.08); color: #cc0000; border: 1px solid rgba(255,0,0,0.2); }
 
-    /* ── SET PIN CARD ── */
-    .pin-card {
-      border-radius: 20px;
-      padding: 22px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
+    /* ── BOTTOM GLASS NAV ── */
+    .bottom-nav {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 100;
+      width: calc(100% - 40px); max-width: 440px; display: flex; align-items: center; justify-content: space-around;
+      padding: 10px 14px; border-radius: 28px; background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(0,0,0,0.15); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
     }
-
-    .field-label {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #000000;
-      margin-bottom: 8px;
-      display: block;
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 18px;
+      border-radius: 18px; cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      -webkit-tap-highlight-color: transparent; position: relative; text-decoration: none;
     }
+    .nav-item svg { width: 21px; height: 21px; stroke: #888888; transition: stroke 0.25s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    .nav-item span { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #888888; transition: color 0.25s ease; }
+    .nav-item.active { background: rgba(0,0,0,0.08); box-shadow: inset 0 1px 0 rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-3px); }
+    .nav-item.active svg { stroke: #000000; transform: scale(1.08); }
+    .nav-item.active span { color: #000000; }
 
-    .pin-input-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      background: rgba(0, 0, 0, 0.04);
-      border-radius: 14px;
-      padding: 14px 16px;
-      transition: border-color 0.2s ease;
-    }
-
-    .pin-input-row:focus-within {
-      border-color: rgba(0, 0, 0, 0.4);
-    }
-
-    .pin-input-row input {
-      flex: 1;
-      border: none;
-      background: transparent;
-      outline: none;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 800;
-      font-size: 20px;
-      letter-spacing: 0.6em;
-      text-align: center;
-      color: #000000;
-      min-width: 0;
-    }
-
-    .pin-input-row input::placeholder {
-      color: #c4c4c4;
-      letter-spacing: 0.6em;
-    }
-
-    .pin-input-row input[type=number]::-webkit-outer-spin-button,
-    .pin-input-row input[type=number]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    .pin-input-row input[type=number] {
-      -moz-appearance: textfield;
-    }
-
-    .pin-eye-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.06);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: background 0.2s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .pin-eye-btn:hover {
-      background: rgba(0, 0, 0, 0.1);
-    }
-
-    .pin-eye-btn svg {
-      width: 17px;
-      height: 17px;
-      stroke: #1a1a1a;
-    }
-
-    .pin-hint {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 400;
-      font-size: 12px;
-      letter-spacing: 0.02em;
-      color: #999999;
-      line-height: 1.5;
-      margin-top: -8px;
-    }
-
-    .pin-save-btn {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 800;
-      font-size: 14px;
-      letter-spacing: 0.05em;
-      color: #ffffff;
-      background: #000000;
-      border: none;
-      border-radius: 14px;
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-      -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
-    }
-
-    .pin-save-btn:hover {
-      transform: translateY(-2px);
-      background: #1a1a1a;
-    }
-
-    .pin-save-btn:active {
-      transform: translateY(0) scale(0.98);
-    }
-
-    .pin-save-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .pin-save-btn svg {
-      width: 16px;
-      height: 16px;
-      stroke: #ffffff;
-    }
-
-    .pin-status {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 0.04em;
-      text-align: center;
-      color: #999999;
-      min-height: 16px;
-      transition: color 0.2s ease;
-    }
-
-    .pin-status.success {
-      color: #000000;
+    @media (max-width: 380px) {
+      .nav-item { padding: 9px 12px; }
     }
   </style>
 </head>
 
 <body>
 
-  <div id="bg-canvas-wrapper">
-    <canvas id="bg-canvas"></canvas>
-  </div>
+  <div id="bg-canvas-wrapper"><canvas id="bg-canvas"></canvas></div>
   <div id="bg-overlay"></div>
 
   <div class="app">
 
     <!-- TOP BAR -->
     <div class="topbar">
-      <div class="icon-btn" id="backBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 18l-6-6 6-6" />
+      <a class="back-btn" href="{{ url_for('dashboard', telegram_id=user.telegram_id) }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
+      </a>
+      <div>
+        <div class="page-title">Profile</div>
+        <div class="page-sub">Account Details</div>
       </div>
-      <div class="topbar-title">Profile</div>
     </div>
 
     <!-- PROFILE CARD -->
     <div class="profile-card">
-      <div class="avatar">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
-        </svg>
-      </div>
-      <div class="profile-name">Adaeze Okafor</div>
-      <div class="account-type-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
-          <path d="M12 6v12" />
-        </svg>
-        Student Account
+      <div class="avatar">{{ (user.name or user.username or "U")[0]|upper }}</div>
+      <div class="profile-meta">
+        <span class="profile-name">{{ user.name or "Unnamed User" }}</span>
+        <span class="profile-username">@{{ user.username or "no_username" }}</span>
+        {% if user.is_verified %}
+        <span class="verified-badge yes">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+          Verified
+        </span>
+        {% else %}
+        <span class="verified-badge no">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
+          Unverified
+        </span>
+        {% endif %}
       </div>
     </div>
 
     <!-- ACCOUNT INFO -->
-    <div class="info-section">
-      <div class="section-head">Account Details</div>
-      <div class="info-card">
-        <div class="info-row">
-          <div class="info-row-label">
+    <div class="section-head">Account Info</div>
+    <div class="info-list">
+      <div class="info-row">
+        <div class="info-label">
+          <div class="info-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
+              <circle cx="12" cy="8" r="4" /><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
             </svg>
-            Full Name
           </div>
-          <div class="info-row-value">Adaeze Okafor</div>
+          <div class="info-text">
+            <span class="info-key">Full Name</span>
+            <span class="info-value">{{ user.name or "Not set" }}</span>
+          </div>
         </div>
-        <div class="info-row">
-          <div class="info-row-label">
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <div class="info-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
-              <path d="M12 6v12" />
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z" />
             </svg>
-            Account Type
           </div>
-          <div class="info-row-value">Student Account</div>
+          <div class="info-text">
+            <span class="info-key">Phone Number</span>
+            <span class="info-value">{{ user.phone or "Not set" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <div class="info-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+            </svg>
+          </div>
+          <div class="info-text">
+            <span class="info-key">Telegram ID</span>
+            <span class="info-value">{{ user.telegram_id }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <div class="info-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+          </div>
+          <div class="info-text">
+            <span class="info-key">Member Since</span>
+            <span class="info-value">{{ user.created_at.strftime('%d %b %Y') if user.created_at else "Unknown" }}</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- SET TRANSACTION PIN -->
-    <div class="info-section">
-      <div class="section-head spaced">Set Transaction PIN</div>
-      <div class="pin-card">
-
-        <div>
-          <span class="field-label">New 4-Digit PIN</span>
-          <div class="pin-input-row">
-            <input type="password" id="newPin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-            <div class="pin-eye-btn" id="toggleNewPin" title="Show/hide PIN">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <span class="field-label">Confirm PIN</span>
-          <div class="pin-input-row">
-            <input type="password" id="confirmPin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
-            <div class="pin-eye-btn" id="toggleConfirmPin" title="Show/hide PIN">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="pin-hint">Your PIN is used to authorize transactions like data purchases and wallet transfers. Keep it private.</div>
-
-        <button class="pin-save-btn" id="savePinBtn" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-          Save PIN
-        </button>
-
-        <div class="pin-status" id="pinStatus"></div>
-
-      </div>
-    </div>
+    <!-- CHANGE PIN -->
+    <div class="section-head delayed">Transaction PIN</div>
+    <form class="pin-form" id="pinForm">
+      <input class="field-input" type="password" id="currentPin" placeholder="Current PIN" maxlength="4" inputmode="numeric" autocomplete="off" />
+      <input class="field-input" type="password" id="newPin" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric" autocomplete="off" />
+      <input class="field-input" type="password" id="confirmPin" placeholder="Confirm new PIN" maxlength="4" inputmode="numeric" autocomplete="off" />
+      <button class="submit-btn" type="submit" id="pinSubmitBtn">Update PIN</button>
+      <div class="form-message" id="pinMessage"></div>
+    </form>
 
   </div>
+
+  <!-- BOTTOM GLASS NAV -->
+  <nav class="bottom-nav">
+    <a class="nav-item" data-nav="home" href="{{ url_for('dashboard', telegram_id=user.telegram_id) }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 3l9 6.5" /><path d="M5 9v11h14V9" />
+      </svg>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" data-nav="perks" href="{{ url_for('perks', telegram_id=user.telegram_id) }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" /><path d="M12 6v12" />
+      </svg>
+      <span>Perks</span>
+    </a>
+    <a class="nav-item" data-nav="notifications" href="{{ url_for('notifications', telegram_id=user.telegram_id) }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
+      </svg>
+      <span>Alerts</span>
+    </a>
+    <a class="nav-item active" data-nav="profile" href="{{ url_for('profile', telegram_id=user.telegram_id) }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4" /><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
+      </svg>
+      <span>Profile</span>
+    </a>
+  </nav>
 
   <script>
     /* ── COW PATTERN BG ── */
     function drawCowPattern(ctx, width, height, seed) {
-      const BLACK = '#000000';
-      const WHITE = '#ffffff';
-
+      const BLACK = '#000000', WHITE = '#ffffff';
       function mulberry32(a) {
         return function () {
           var t = a += 0x6D2B79F5;
@@ -542,164 +296,126 @@
           return ((t ^ t >>> 14) >>> 0) / 4294967296;
         };
       }
-
       const rand = mulberry32(seed || 12345);
-
-      ctx.fillStyle = WHITE;
-      ctx.fillRect(0, 0, width, height);
-
+      ctx.fillStyle = WHITE; ctx.fillRect(0, 0, width, height);
       const numBlobs = 25;
-
       for (let i = 0; i < numBlobs; i++) {
-        const cx = rand() * width;
-        const cy = rand() * height;
-        const baseRadius = 80 + rand() * 200;
-
-        ctx.fillStyle = BLACK;
-        ctx.beginPath();
-
-        const points = 8 + Math.floor(rand() * 6);
-        const coords = [];
-
+        const cx = rand() * width, cy = rand() * height, baseRadius = 80 + rand() * 200;
+        ctx.fillStyle = BLACK; ctx.beginPath();
+        const points = 8 + Math.floor(rand() * 6), coords = [];
         for (let p = 0; p < points; p++) {
-          const angle = (p / points) * Math.PI * 2;
-          const r = baseRadius * (0.6 + rand() * 0.8);
-          const wobble = (rand() - 0.5) * 40;
-          coords.push({
-            x: cx + Math.cos(angle) * r + wobble,
-            y: cy + Math.sin(angle) * r + wobble
-          });
+          const angle = (p / points) * Math.PI * 2, r = baseRadius * (0.6 + rand() * 0.8), wobble = (rand() - 0.5) * 40;
+          coords.push({ x: cx + Math.cos(angle) * r + wobble, y: cy + Math.sin(angle) * r + wobble });
         }
-
         for (let p = 0; p < coords.length; p++) {
-          const curr = coords[p];
-          const next = coords[(p + 1) % coords.length];
-          const midX = (curr.x + next.x) / 2;
-          const midY = (curr.y + next.y) / 2;
-          if (p === 0) {
-            ctx.moveTo(midX, midY);
-          } else {
-            ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
-          }
+          const curr = coords[p], next = coords[(p + 1) % coords.length];
+          const midX = (curr.x + next.x) / 2, midY = (curr.y + next.y) / 2;
+          if (p === 0) ctx.moveTo(midX, midY); else ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
         }
-
-        ctx.closePath();
-        ctx.fill();
+        ctx.closePath(); ctx.fill();
       }
-
       for (let i = 0; i < 15; i++) {
-        const sx = rand() * width;
-        const sy = rand() * height;
-        const sr = 10 + rand() * 30;
-        ctx.fillStyle = BLACK;
-        ctx.beginPath();
-        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-        ctx.fill();
+        const sx = rand() * width, sy = rand() * height, sr = 10 + rand() * 30;
+        ctx.fillStyle = BLACK; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
       }
     }
-
     (function () {
       const canvas = document.getElementById('bg-canvas');
       const ctx = canvas.getContext('2d', { alpha: false });
-
       function resize() {
         const w = Math.max(window.screen.width, window.innerWidth, document.documentElement.clientWidth);
         const h = Math.max(window.screen.height, window.innerHeight, document.documentElement.clientHeight);
-
-        canvas.width = w;
-        canvas.height = h;
-
+        canvas.width = w; canvas.height = h;
         const wrapper = document.getElementById('bg-canvas-wrapper');
-        wrapper.style.width = w + 'px';
-        wrapper.style.height = h + 'px';
-
+        wrapper.style.width = w + 'px'; wrapper.style.height = h + 'px';
         drawCowPattern(ctx, w, h, 12345);
       }
-
       resize();
-
       window.addEventListener('resize', resize);
-      window.addEventListener('orientationchange', function () {
-        setTimeout(resize, 300);
-      });
-      window.visualViewport && window.visualViewport.addEventListener('resize', function () {
-        setTimeout(resize, 100);
-      });
+      window.addEventListener('orientationchange', function () { setTimeout(resize, 300); });
+      window.visualViewport && window.visualViewport.addEventListener('resize', function () { setTimeout(resize, 100); });
     })();
 
-    /* ── BACK BUTTON ── */
-    document.getElementById('backBtn').addEventListener('click', () => {
-      if (window.history.length > 1) {
-        window.history.back();
-      }
-    });
-
-    /* ── SET TRANSACTION PIN ── */
+    /* ── TELEGRAM MINI APP INIT ── */
     (function () {
+      try {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if (tg) { tg.ready(); tg.expand(); }
+      } catch (e) { console.warn('Telegram WebApp init failed:', e); }
+    })();
+
+    /* ── PIN UPDATE FORM ── */
+    (function () {
+      const pinForm = document.getElementById('pinForm');
+      const currentPin = document.getElementById('currentPin');
       const newPin = document.getElementById('newPin');
       const confirmPin = document.getElementById('confirmPin');
-      const toggleNewPin = document.getElementById('toggleNewPin');
-      const toggleConfirmPin = document.getElementById('toggleConfirmPin');
-      const savePinBtn = document.getElementById('savePinBtn');
-      const pinStatus = document.getElementById('pinStatus');
+      const pinSubmitBtn = document.getElementById('pinSubmitBtn');
+      const pinMessage = document.getElementById('pinMessage');
 
-      const EYE_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>';
-      const EYE_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a18.5 18.5 0 014.06-5.06M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 7 11 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" /><path d="M1 1l22 22" /></svg>';
-
-      function sanitizePin(input) {
-        input.value = input.value.replace(/\D/g, '').slice(0, 4);
-      }
-
-      function setupToggle(input, btn) {
-        btn.addEventListener('click', () => {
-          if (input.type === 'password') {
-            input.type = 'text';
-            btn.innerHTML = EYE_CLOSED;
-          } else {
-            input.type = 'password';
-            btn.innerHTML = EYE_OPEN;
-          }
-        });
-      }
-
-      setupToggle(newPin, toggleNewPin);
-      setupToggle(confirmPin, toggleConfirmPin);
-
-      function validate() {
-        const a = newPin.value.trim();
-        const b = confirmPin.value.trim();
-        const valid = /^\d{4}$/.test(a) && /^\d{4}$/.test(b);
-        savePinBtn.disabled = !valid;
-        return { a, b, valid };
-      }
-
-      [newPin, confirmPin].forEach(input => {
+      [currentPin, newPin, confirmPin].forEach(input => {
         input.addEventListener('input', () => {
-          sanitizePin(input);
-          pinStatus.textContent = '';
-          pinStatus.classList.remove('success');
-          validate();
+          input.value = input.value.replace(/\D/g, '').slice(0, 4);
         });
       });
 
-      savePinBtn.addEventListener('click', () => {
-        const { a, b, valid } = validate();
-        if (!valid) return;
+      function getTelegramId() {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+          return tg.initDataUnsafe.user.id;
+        }
+        return new URLSearchParams(window.location.search).get('telegram_id');
+      }
 
-        if (a !== b) {
-          pinStatus.textContent = "PINs don't match. Please try again.";
-          pinStatus.classList.remove('success');
+      pinForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        pinMessage.className = 'form-message';
+        pinMessage.textContent = '';
+
+        if (currentPin.value.length !== 4 || newPin.value.length !== 4 || confirmPin.value.length !== 4) {
+          pinMessage.className = 'form-message error';
+          pinMessage.textContent = 'All PIN fields must be exactly 4 digits.';
+          return;
+        }
+        if (newPin.value !== confirmPin.value) {
+          pinMessage.className = 'form-message error';
+          pinMessage.textContent = 'New PIN and confirmation do not match.';
           return;
         }
 
-        pinStatus.textContent = 'Transaction PIN saved successfully.';
-        pinStatus.classList.add('success');
-        newPin.value = '';
-        confirmPin.value = '';
-        savePinBtn.disabled = true;
+        pinSubmitBtn.disabled = true;
+        pinSubmitBtn.textContent = 'Updating...';
+
+        try {
+          const res = await fetch('/api/profile/update-pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegram_id: getTelegramId(),
+              current_pin: currentPin.value,
+              new_pin: newPin.value
+            })
+          });
+          const result = await res.json();
+
+          if (res.ok && result.success) {
+            pinMessage.className = 'form-message success';
+            pinMessage.textContent = result.message || 'PIN updated successfully.';
+            currentPin.value = ''; newPin.value = ''; confirmPin.value = '';
+          } else {
+            pinMessage.className = 'form-message error';
+            pinMessage.textContent = result.message || 'Could not update PIN.';
+          }
+        } catch (err) {
+          pinMessage.className = 'form-message error';
+          pinMessage.textContent = 'Network error. Please try again.';
+        } finally {
+          pinSubmitBtn.disabled = false;
+          pinSubmitBtn.textContent = 'Update PIN';
+        }
       });
     })();
   </script>
 </body>
 
-</html>`
+</html>
