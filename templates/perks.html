@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>VTMoo — Student Perks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      width: 100%;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-family: 'Barlow Condensed', sans-serif;
+      background: #ffffff;
+      color: #000000;
+    }
+
+    /* ── COW PATTERN BG ── */
+    #bg-canvas-wrapper {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    #bg-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    #bg-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 75%);
+    }
+
+    /* ── PAGE FRAME ── */
+    .app {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 22px 20px 60px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.05s forwards;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.12);
+      border-color: rgba(0, 0, 0, 0.25);
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: #1a1a1a;
+    }
+
+    .topbar-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+      color: #000000;
+    }
+
+    /* ── HERO CARD ── */
+    .hero-card {
+      border-radius: 20px;
+      padding: 26px 22px;
+      background: #000000;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.1s forwards;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .hero-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: #ffffff;
+    }
+
+    .hero-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 900;
+      font-size: 22px;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+
+    .hero-sub {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+    }
+
+    /* ── SPOTS LEFT BANNER ── */
+    .spots-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-radius: 16px;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.16s forwards;
+      margin-bottom: 24px;
+    }
+
+    .spots-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .spots-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #000000;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .spots-dot::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 0, 0, 0.25);
+      animation: pulse 2s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .spots-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .spots-count {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: #000000;
+    }
+
+    .spots-count span {
+      color: #555555;
+      font-weight: 600;
+    }
+
+    .spots-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #999999;
+    }
+
+    .refresh-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+
+    .refresh-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .refresh-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: #1a1a1a;
+      transition: transform 0.2s ease;
+    }
+
+    .refresh-btn.spinning svg {
+      animation: spin 0.6s linear;
+    }
+
+    .refresh-hint {
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.2s forwards;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      color: #999999;
+      line-height: 1.5;
+      margin: -14px 0 24px;
+      padding: 0 4px;
+    }
+
+    .refresh-hint b {
+      color: #555555;
+      font-weight: 700;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .section-head {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #555555;
+      margin: 0 0 14px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.24s forwards;
+    }
+
+    /* ── FORM CARD ── */
+    .form-card {
+      border-radius: 20px;
+      padding: 22px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.3s forwards;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .field-label {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #888888;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .text-input,
+    textarea.text-input {
+      width: 100%;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: #000000;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .text-input:focus {
+      border-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .text-input::placeholder {
+      color: #c4c4c4;
+      font-weight: 500;
+    }
+
+    textarea.text-input {
+      resize: vertical;
+      min-height: 110px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .field-hint {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: #aaaaaa;
+      margin-top: 6px;
+    }
+
+    /* ── FILE UPLOAD ── */
+    .upload-box {
+      border: 1.5px dashed rgba(0, 0, 0, 0.18);
+      border-radius: 14px;
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .upload-box:hover {
+      border-color: rgba(0, 0, 0, 0.35);
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .upload-box svg {
+      width: 24px;
+      height: 24px;
+      stroke: #888888;
+      margin-bottom: 8px;
+    }
+
+    .upload-box-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: #000000;
+      margin-bottom: 2px;
+    }
+
+    .upload-box-sub {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #999999;
+    }
+
+    .upload-box input[type="file"] {
+      display: none;
+    }
+
+    .upload-box.has-file {
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.25);
+    }
+
+    .upload-box.has-file .upload-box-title {
+      color: #000000;
+    }
+
+    /* ── SUBMIT ── */
+    .submit-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.05em;
+      color: #ffffff;
+      background: #000000;
+      border: none;
+      border-radius: 16px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+      -webkit-tap-highlight-color: transparent;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.36s forwards;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      background: #1a1a1a;
+    }
+
+    .submit-btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .submit-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: #ffffff;
+    }
+
+    /* ── STATUS CARD ── */
+    .status-card {
+      border-radius: 20px;
+      padding: 22px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .status-icon-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+
+    .status-icon-wrap svg {
+      width: 22px;
+      height: 22px;
+      transition: stroke 0.3s ease;
+    }
+
+    /* status states */
+    .status-card.pending .status-icon-wrap {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .status-card.pending .status-icon-wrap svg {
+      stroke: #555555;
+      animation: spin 2.4s linear infinite;
+      transform-origin: center;
+    }
+
+    .status-card.approved .status-icon-wrap {
+      background: #000000;
+    }
+
+    .status-card.approved .status-icon-wrap svg {
+      stroke: #ffffff;
+    }
+
+    .status-card.idle .status-icon-wrap {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .status-card.idle .status-icon-wrap svg {
+      stroke: #999999;
+    }
+
+    .status-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .status-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      color: #000000;
+      letter-spacing: -0.01em;
+    }
+
+    .status-desc {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #777777;
+    }
+
+    .status-badge {
+      align-self: flex-start;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      border-radius: 999px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+
+    .status-card.pending .status-badge {
+      background: rgba(0, 0, 0, 0.08);
+      color: #555555;
+    }
+
+    .status-card.approved .status-badge {
+      background: #000000;
+      color: #ffffff;
+    }
+
+    .status-card.idle .status-badge {
+      background: rgba(0, 0, 0, 0.06);
+      color: #999999;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="bg-canvas-wrapper">
+    <canvas id="bg-canvas"></canvas>
+  </div>
+  <div id="bg-overlay"></div>
+
+  <div class="app">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="icon-btn" id="backBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </div>
+      <div class="topbar-title">Student Perks</div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero-card">
+      <div class="hero-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" />
+          <path d="M12 6v12" />
+        </svg>
+      </div>
+      <div class="hero-title">Apply for Student Discount</div>
+      <div class="hero-sub">
+        Verified students get reduced rates on data plans, airtime and exclusive VTMoo perks. Fill the form below to get started.
+      </div>
+    </div>
+
+    <!-- SPOTS LEFT -->
+    <div class="spots-banner">
+      <div class="spots-info">
+        <div class="spots-dot"></div>
+        <div class="spots-text">
+          <div class="spots-count"><span id="spotsCount">79</span> <span>spots left this round</span></div>
+          <div class="spots-label">Limited availability</div>
+        </div>
+      </div>
+      <div class="refresh-btn" id="refreshBtn" title="Refresh spots count">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6" />
+          <path d="M1 20v-6h6" />
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10" />
+          <path d="M20.49 15a9 9 0 01-14.85 3.36L1 14" />
+        </svg>
+      </div>
+    </div>
+    <div class="refresh-hint">
+      <b>What's the refresh button for?</b> Spots open up as other applicants are reviewed and approved. Tap refresh to check for the latest available count before you apply.
+    </div>
+
+    <!-- FORM -->
+    <div class="section-head">Application Form</div>
+    <div class="form-card">
+
+      <div>
+        <span class="field-label">Full Name</span>
+        <input type="text" class="text-input" id="fullName" placeholder="As shown on student ID" />
+      </div>
+
+      <div>
+        <span class="field-label">University / Institution</span>
+        <input type="text" class="text-input" id="university" placeholder="e.g. University of Lagos" />
+      </div>
+
+      <div>
+        <span class="field-label">Matric / Student ID Number</span>
+        <input type="text" class="text-input" id="matricNo" placeholder="e.g. 190405123" />
+      </div>
+
+      <div>
+        <span class="field-label">Student ID Card (Photo)</span>
+        <label class="upload-box" id="uploadBox">
+          <input type="file" id="idUpload" accept="image/*,.pdf" />
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <path d="M17 8l-5-5-5 5" />
+            <path d="M12 3v12" />
+          </svg>
+          <div class="upload-box-title" id="uploadTitle">Upload a clear photo of your ID</div>
+          <div class="upload-box-sub">JPG, PNG or PDF · Max 5MB</div>
+        </label>
+      </div>
+
+      <div>
+        <span class="field-label">Why do you need this discount?</span>
+        <textarea class="text-input" id="reason" placeholder="Tell us briefly about your situation as a student — e.g. how the data discount helps with classes, assignments, research, or staying connected on a student budget."></textarea>
+        <div class="field-hint">A short, honest description helps with faster review.</div>
+      </div>
+
+    </div>
+
+    <!-- SUBMIT -->
+    <button class="submit-btn" id="submitBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 2L11 13" />
+        <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+      </svg>
+      Submit Application
+    </button>
+
+    <!-- STATUS -->
+    <div class="section-head">Status &amp; Notifications</div>
+    <div class="status-card idle" id="statusCard">
+      <div class="status-icon-wrap" id="statusIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
+        </svg>
+      </div>
+      <div class="status-text">
+        <div class="status-title" id="statusTitle">No Application Yet</div>
+        <div class="status-desc" id="statusDesc">Once you submit the form above, your application status and updates will appear here.</div>
+        <span class="status-badge" id="statusBadge">Not Submitted</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ── COW PATTERN BG ── */
+    function drawCowPattern(ctx, width, height, seed) {
+      const BLACK = '#000000';
+      const WHITE = '#ffffff';
+
+      function mulberry32(a) {
+        return function () {
+          var t = a += 0x6D2B79F5;
+          t = Math.imul(t ^ t >>> 15, t | 1);
+          t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+          return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+      }
+
+      const rand = mulberry32(seed || 12345);
+
+      ctx.fillStyle = WHITE;
+      ctx.fillRect(0, 0, width, height);
+
+      const numBlobs = 25;
+
+      for (let i = 0; i < numBlobs; i++) {
+        const cx = rand() * width;
+        const cy = rand() * height;
+        const baseRadius = 80 + rand() * 200;
+
+        ctx.fillStyle = BLACK;
+        ctx.beginPath();
+
+        const points = 8 + Math.floor(rand() * 6);
+        const coords = [];
+
+        for (let p = 0; p < points; p++) {
+          const angle = (p / points) * Math.PI * 2;
+          const r = baseRadius * (0.6 + rand() * 0.8);
+          const wobble = (rand() - 0.5) * 40;
+          coords.push({
+            x: cx + Math.cos(angle) * r + wobble,
+            y: cy + Math.sin(angle) * r + wobble
+          });
+        }
+
+        for (let p = 0; p < coords.length; p++) {
+          const curr = coords[p];
+          const next = coords[(p + 1) % coords.length];
+          const midX = (curr.x + next.x) / 2;
+          const midY = (curr.y + next.y) / 2;
+          if (p === 0) {
+            ctx.moveTo(midX, midY);
+          } else {
+            ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
+          }
+        }
+
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      for (let i = 0; i < 15; i++) {
+        const sx = rand() * width;
+        const sy = rand() * height;
+        const sr = 10 + rand() * 30;
+        ctx.fillStyle = BLACK;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    (function () {
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d', { alpha: false });
+
+      function resize() {
+        const w = Math.max(window.screen.width, window.innerWidth, document.documentElement.clientWidth);
+        const h = Math.max(window.screen.height, window.innerHeight, document.documentElement.clientHeight);
+
+        canvas.width = w;
+        canvas.height = h;
+
+        const wrapper = document.getElementById('bg-canvas-wrapper');
+        wrapper.style.width = w + 'px';
+        wrapper.style.height = h + 'px';
+
+        drawCowPattern(ctx, w, h, 12345);
+      }
+
+      resize();
+
+      window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', function () {
+        setTimeout(resize, 300);
+      });
+      window.visualViewport && window.visualViewport.addEventListener('resize', function () {
+        setTimeout(resize, 100);
+      });
+    })();
+
+    /* ── BACK BUTTON ── */
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      }
+    });
+
+    /* ── FILE UPLOAD ── */
+    (function () {
+      const idUpload = document.getElementById('idUpload');
+      const uploadBox = document.getElementById('uploadBox');
+      const uploadTitle = document.getElementById('uploadTitle');
+
+      idUpload.addEventListener('change', () => {
+        if (idUpload.files && idUpload.files[0]) {
+          uploadTitle.textContent = idUpload.files[0].name;
+          uploadBox.classList.add('has-file');
+        } else {
+          uploadTitle.textContent = 'Upload a clear photo of your ID';
+          uploadBox.classList.remove('has-file');
+        }
+      });
+    })();
+
+    /* ── REFRESH SPOTS COUNT ── */
+    (function () {
+      const refreshBtn = document.getElementById('refreshBtn');
+      const spotsCount = document.getElementById('spotsCount');
+      let current = 79;
+
+      refreshBtn.addEventListener('click', () => {
+        refreshBtn.classList.add('spinning');
+        setTimeout(() => {
+          // simulate spots count decreasing slightly as others get approved
+          const drop = Math.floor(Math.random() * 3); // 0-2
+          current = Math.max(0, current - drop);
+          spotsCount.textContent = current;
+          refreshBtn.classList.remove('spinning');
+        }, 650);
+      });
+    })();
+
+    /* ── APPLICATION SUBMIT + STATUS FLOW ── */
+    (function () {
+      const submitBtn = document.getElementById('submitBtn');
+      const statusCard = document.getElementById('statusCard');
+      const statusIcon = document.getElementById('statusIcon');
+      const statusTitle = document.getElementById('statusTitle');
+      const statusDesc = document.getElementById('statusDesc');
+      const statusBadge = document.getElementById('statusBadge');
+
+      const ICONS = {
+        idle: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>',
+        pending: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-9-9" /></svg>',
+        approved: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>'
+      };
+
+      function setStatus(state, title, desc, badge) {
+        statusCard.classList.remove('idle', 'pending', 'approved');
+        statusCard.classList.add(state);
+        statusIcon.innerHTML = ICONS[state];
+        statusTitle.textContent = title;
+        statusDesc.textContent = desc;
+        statusBadge.textContent = badge;
+      }
+
+      function validate() {
+        const fullName = document.getElementById('fullName').value.trim();
+        const university = document.getElementById('university').value.trim();
+        const matricNo = document.getElementById('matricNo').value.trim();
+        const reason = document.getElementById('reason').value.trim();
+        const hasFile = document.getElementById('idUpload').files.length > 0;
+        return fullName && university && matricNo && reason && hasFile;
+      }
+
+      submitBtn.addEventListener('click', () => {
+        if (!validate()) {
+          setStatus(
+            'idle',
+            'Missing Information',
+            'Please fill in all fields and upload your student ID before submitting your application.',
+            'Incomplete'
+          );
+          statusCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+
+        // Step 1: submitted / pending review
+        setStatus(
+          'pending',
+          'Your Request Has Been Filed',
+          'Your application is now in the review queue. Reviews usually take about 1 hour or less — feel free to come back later to check.',
+          'Under Review'
+        );
+        statusCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Step 2 (demo): simulate approval after review window
+        setTimeout(() => {
+          setStatus(
+            'approved',
+            "You've Been Selected!",
+            'Congratulations — your student discount application has been approved. Your discounted rates are now active on your account.',
+            'Approved'
+          );
+        }, 6000);
+      });
+    })();
+  </script>
+</body>
+
+</html>
