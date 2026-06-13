@@ -1,29 +1,411 @@
 {% extends "admin/base.html" %}
 
-{% block content %}
+{% block extra_head %}
 <style>
-  .placeholder-card {
-    background: #ffffff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px;
-    padding: 60px 32px; text-align: center;
+  /* ── LAYOUT ── */
+  .page-intro {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 14px;
+    color: #888888; margin-bottom: 24px; line-height: 1.5;
   }
-  .placeholder-icon {
-    width: 56px; height: 56px; border-radius: 14px; background: #f4f4f2;
-    display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
-  }
-  .placeholder-icon svg { width: 26px; height: 26px; stroke: #0a0a0a; }
-  .placeholder-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; margin-bottom: 8px; }
-  .placeholder-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 14px; color: #999999; max-width: 420px; margin: 0 auto; line-height: 1.6; }
-</style>
+  .two-col { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
 
-<div class="placeholder-card">
-  <div class="placeholder-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
-    </svg>
-  </div>
-  <div class="placeholder-title">Network Management — Coming Next</div>
-  <div class="placeholder-sub">
-    This page will let you add networks (MTN, Airtel, Glo, 9mobile), toggle their active status, and map them to supplier provider IDs.
+  /* ── CARD ── */
+  .card {
+    background: #ffffff; border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 16px; overflow: hidden;
+  }
+  .card-head {
+    padding: 18px 22px; border-bottom: 1px solid rgba(0,0,0,0.06);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title {
+    font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: -0.01em;
+  }
+  .card-body { padding: 22px; }
+
+  /* ── FORM ── */
+  .field-group { margin-bottom: 14px; }
+  .field-label {
+    display: block; font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 10.5px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: #888888; margin-bottom: 7px;
+  }
+  .field-input {
+    width: 100%; font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 14px;
+    color: #0a0a0a; background: #f7f7f7; border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 10px; padding: 11px 14px; outline: none; transition: border-color 0.2s ease;
+  }
+  .field-input:focus { border-color: #0a0a0a; background: #fff; }
+  .field-input::placeholder { color: #b0b0b0; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 13px;
+    letter-spacing: 0.04em; border: none; border-radius: 10px; padding: 11px 18px;
+    transition: all 0.18s ease; -webkit-tap-highlight-color: transparent;
+  }
+  .btn svg { width: 15px; height: 15px; stroke: currentColor; }
+  .btn-primary { background: #0a0a0a; color: #f5f5f5; }
+  .btn-primary:hover { background: #333; }
+  .btn-sm { padding: 7px 13px; font-size: 12px; border-radius: 8px; }
+  .btn-ghost { background: transparent; color: #555; border: 1px solid rgba(0,0,0,0.12); }
+  .btn-ghost:hover { background: #f4f4f2; }
+  .btn-danger { background: transparent; color: #cc3333; border: 1px solid rgba(204,51,51,0.2); }
+  .btn-danger:hover { background: rgba(204,51,51,0.06); }
+  .btn-success { background: transparent; color: #1a7a3a; border: 1px solid rgba(26,122,58,0.2); }
+  .btn-success:hover { background: rgba(26,122,58,0.06); }
+
+  /* ── SEARCH ── */
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-input {
+    width: 100%; font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 14px;
+    color: #0a0a0a; background: #f7f7f7; border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 10px; padding: 10px 14px 10px 38px; outline: none; transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: #0a0a0a; background: #fff; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); }
+  .search-icon svg { width: 16px; height: 16px; stroke: #999; }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-family: 'Barlow Condensed', sans-serif; }
+  thead th {
+    padding: 10px 16px; text-align: left; font-family: 'JetBrains Mono', monospace;
+    font-weight: 500; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #999; border-bottom: 1px solid rgba(0,0,0,0.07); white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); transition: background 0.15s ease; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafafa; }
+  td { padding: 13px 16px; font-size: 14px; vertical-align: middle; }
+  td.net-name { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 14px; }
+  td.mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #666; }
+
+  /* ── STATUS BADGE ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge-active { background: rgba(26,166,76,0.1); color: #1a7a3a; }
+  .badge-active .badge-dot { background: #1ca64c; }
+  .badge-disabled { background: rgba(204,51,51,0.08); color: #cc3333; }
+  .badge-disabled .badge-dot { background: #cc3333; }
+
+  /* ── ACTIONS CELL ── */
+  .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* ── BULK BAR ── */
+  .bulk-bar {
+    display: none; align-items: center; gap: 12px; background: #0a0a0a;
+    color: #f5f5f5; padding: 12px 18px; border-radius: 10px; margin-bottom: 14px;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 13.5px; font-weight: 500;
+  }
+  .bulk-bar.visible { display: flex; }
+  .bulk-bar .bulk-count { font-weight: 700; }
+  .bulk-bar .ml-auto { margin-left: auto; display: flex; gap: 8px; }
+
+  /* ── MODAL ── */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 500; align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 18px; padding: 28px;
+    width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .modal-title {
+    font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .modal-sub {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 13.5px;
+    color: #777; margin-bottom: 22px; line-height: 1.5;
+  }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: #0a0a0a; color: #f5f5f5;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 13.5px;
+    padding: 12px 18px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    transform: translateY(20px); opacity: 0; transition: all 0.25s ease; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: #cc3333; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 48px 24px; color: #aaa; }
+  .empty-state svg { width: 36px; height: 36px; stroke: #ccc; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<p class="page-intro">Control which networks are available to users. Disabled networks are hidden from users but plans remain stored and synced.</p>
+
+<!-- BULK BAR -->
+<div class="bulk-bar" id="bulkBar">
+  <span><span class="bulk-count" id="bulkCount">0</span> selected</span>
+  <div class="ml-auto">
+    <button class="btn btn-sm btn-success" onclick="bulkAction('enable')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      Enable
+    </button>
+    <button class="btn btn-sm btn-danger" onclick="bulkAction('disable')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      Disable
+    </button>
   </div>
 </div>
+
+<div class="two-col">
+  <!-- ADD NETWORK FORM -->
+  <div class="card" id="addNetworkCard">
+    <div class="card-head">
+      <span class="card-title" id="formCardTitle">Add Network</span>
+    </div>
+    <div class="card-body">
+      <form id="networkForm">
+        <input type="hidden" id="editNetworkId" value="" />
+        <div class="field-group">
+          <label class="field-label" for="netName">Network Name</label>
+          <input class="field-input" type="text" id="netName" placeholder="e.g. MTN" required />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="netProviderId">Provider ID <span style="color:#bbb;font-weight:400">(optional)</span></label>
+          <input class="field-input" type="text" id="netProviderId" placeholder="e.g. mtn_sme" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="netOrder">Display Order <span style="color:#bbb;font-weight:400">(optional)</span></label>
+          <input class="field-input" type="number" id="netOrder" placeholder="e.g. 1" min="1" />
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <button class="btn btn-primary" type="submit" id="formSubmitBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add Network
+          </button>
+          <button class="btn btn-ghost" type="button" id="formCancelBtn" style="display:none" onclick="resetForm()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- NETWORKS TABLE -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Networks</span>
+      <span id="netCountBadge" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#999;letter-spacing:0.1em">
+        {{ networks|length }} total
+      </span>
+    </div>
+    <div class="card-body" style="padding-bottom:0">
+      <div class="search-wrap">
+        <div class="search-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </div>
+        <input class="search-input" type="text" id="searchInput" placeholder="Search networks..." oninput="filterTable()" />
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="networksTable">
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" /></th>
+            <th>Network</th>
+            <th>Provider ID</th>
+            <th>Status</th>
+            <th>Order</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="networksBody">
+          {% if networks and networks|length > 0 %}
+            {% for net in networks %}
+            <tr data-id="{{ net.id }}" data-name="{{ net.name|lower }}">
+              <td><input type="checkbox" class="row-check" value="{{ net.id }}" onchange="updateBulkBar()" /></td>
+              <td class="net-name">{{ net.name }}</td>
+              <td class="mono">{{ net.provider_id or '—' }}</td>
+              <td>
+                {% if net.is_active %}
+                <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                {% else %}
+                <span class="badge badge-disabled"><span class="badge-dot"></span>Disabled</span>
+                {% endif %}
+              </td>
+              <td class="mono">{{ net.display_order or '—' }}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="btn btn-sm btn-ghost" onclick='openEdit({{ net.id }}, "{{ net.name }}", "{{ net.provider_id or "" }}", {{ net.display_order or 0 }})'>Edit</button>
+                  {% if net.is_active %}
+                  <button class="btn btn-sm btn-danger" onclick="confirmToggle({{ net.id }}, '{{ net.name }}', false)">Disable</button>
+                  {% else %}
+                  <button class="btn btn-sm btn-success" onclick="confirmToggle({{ net.id }}, '{{ net.name }}', true)">Enable</button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr id="emptyRow">
+              <td colspan="6">
+                <div class="empty-state">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3"/></svg>
+                  <p>No networks yet. Add one using the form.</p>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM TOGGLE MODAL -->
+<div class="modal-backdrop" id="toggleModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Disable MTN?</div>
+    <div class="modal-sub" id="modalSub">Users will not be able to purchase MTN data.</div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let pendingToggle = null;
+
+  // ── TOAST ──
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── SEARCH FILTER ──
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#networksBody tr[data-name]').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+  }
+
+  // ── BULK CHECKBOX ──
+  function toggleSelectAll(cb) {
+    document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+    updateBulkBar();
+  }
+  function updateBulkBar() {
+    const checked = document.querySelectorAll('.row-check:checked');
+    const bar = document.getElementById('bulkBar');
+    document.getElementById('bulkCount').textContent = checked.length;
+    bar.classList.toggle('visible', checked.length > 0);
+    const all = document.querySelectorAll('.row-check');
+    document.getElementById('selectAll').indeterminate = checked.length > 0 && checked.length < all.length;
+    document.getElementById('selectAll').checked = checked.length === all.length && all.length > 0;
+  }
+
+  // ── BULK ACTION ──
+  async function bulkAction(action) {
+    const ids = [...document.querySelectorAll('.row-check:checked')].map(c => parseInt(c.value));
+    if (!ids.length) return;
+    try {
+      const res = await fetch('/admin/api/network/bulk-toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, action })
+      });
+      const data = await res.json();
+      if (data.success) { showToast(data.message); setTimeout(() => location.reload(), 700); }
+      else showToast(data.message, true);
+    } catch { showToast('Network error', true); }
+  }
+
+  // ── EDIT FORM ──
+  function openEdit(id, name, provider_id, order) {
+    document.getElementById('editNetworkId').value = id;
+    document.getElementById('netName').value = name;
+    document.getElementById('netProviderId').value = provider_id;
+    document.getElementById('netOrder').value = order || '';
+    document.getElementById('formCardTitle').textContent = 'Edit Network';
+    document.getElementById('formSubmitBtn').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Save Changes';
+    document.getElementById('formCancelBtn').style.display = '';
+    document.getElementById('addNetworkCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('netName').focus();
+  }
+  function resetForm() {
+    document.getElementById('networkForm').reset();
+    document.getElementById('editNetworkId').value = '';
+    document.getElementById('formCardTitle').textContent = 'Add Network';
+    document.getElementById('formSubmitBtn').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Add Network';
+    document.getElementById('formCancelBtn').style.display = 'none';
+  }
+
+  // ── ADD/EDIT SUBMIT ──
+  document.getElementById('networkForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const id = document.getElementById('editNetworkId').value;
+    const body = {
+      name: document.getElementById('netName').value.trim(),
+      provider_id: document.getElementById('netProviderId').value.trim(),
+      display_order: parseInt(document.getElementById('netOrder').value) || null
+    };
+    const url = id ? `/admin/api/network/update/${id}` : '/admin/api/network/add';
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (data.success) { showToast(data.message); setTimeout(() => location.reload(), 700); }
+      else showToast(data.message, true);
+    } catch { showToast('Network error', true); }
+  });
+
+  // ── TOGGLE MODAL ──
+  function confirmToggle(id, name, enable) {
+    pendingToggle = { id, enable };
+    document.getElementById('modalTitle').textContent = (enable ? 'Enable ' : 'Disable ') + name + '?';
+    document.getElementById('modalSub').textContent = enable
+      ? `${name} plans will become available to users again.`
+      : `Users will not be able to purchase ${name} data. Plans remain stored.`;
+    document.getElementById('modalConfirmBtn').className = 'btn ' + (enable ? 'btn-success' : 'btn-danger');
+    document.getElementById('modalConfirmBtn').textContent = enable ? 'Enable' : 'Disable';
+    document.getElementById('toggleModal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('toggleModal').classList.remove('open');
+    pendingToggle = null;
+  }
+  document.getElementById('toggleModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('toggleModal')) closeModal();
+  });
+  document.getElementById('modalConfirmBtn').addEventListener('click', async () => {
+    if (!pendingToggle) return;
+    try {
+      const res = await fetch(`/admin/api/network/toggle/${pendingToggle.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: pendingToggle.enable })
+      });
+      const data = await res.json();
+      closeModal();
+      if (data.success) { showToast(data.message); setTimeout(() => location.reload(), 700); }
+      else showToast(data.message, true);
+    } catch { showToast('Network error', true); closeModal(); }
+  });
+</script>
 {% endblock %}
