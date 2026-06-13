@@ -1,1 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VTMoo Admin — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Barlow Condensed', sans-serif;
+      background: #0a0a0a;
+      color: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+      overflow: hidden;
+    }
 
+    /* subtle grid backdrop */
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: "";
+      position: absolute;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 380px;
+      background: #131313;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 36px 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .brand-mark {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: #f5f5f5; color: #0a0a0a;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Barlow', sans-serif; font-weight: 900; font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+    .brand-text { display: flex; flex-direction: column; }
+    .brand-name { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
+    .brand-sub {
+      font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 10.5px;
+      letter-spacing: 0.18em; text-transform: uppercase; color: #6b6b6b;
+    }
+
+    .login-title {
+      font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 24px;
+      letter-spacing: -0.01em; margin-bottom: 6px;
+    }
+    .login-sub {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 13.5px;
+      color: #8a8a8a; margin-bottom: 28px; line-height: 1.5;
+    }
+
+    .field-label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 10.5px;
+      letter-spacing: 0.16em; text-transform: uppercase; color: #8a8a8a; margin-bottom: 8px;
+    }
+
+    .field-wrap { position: relative; margin-bottom: 18px; }
+    .field-input {
+      width: 100%;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 15px;
+      color: #f5f5f5; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 14px 44px 14px 16px; outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease;
+      letter-spacing: 0.04em;
+    }
+    .field-input:focus { border-color: rgba(255,255,255,0.35); background: #1f1f1f; }
+    .field-input::placeholder { color: #565656; letter-spacing: 0.02em; }
+
+    .toggle-pw {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      width: 28px; height: 28px; border: none; background: transparent; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle-pw svg { width: 18px; height: 18px; stroke: #6b6b6b; transition: stroke 0.2s ease; }
+    .toggle-pw:hover svg { stroke: #c5c5c5; }
+
+    .login-btn {
+      width: 100%;
+      font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 14px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: #0a0a0a; background: #f5f5f5; border: none;
+      border-radius: 12px; padding: 15px; cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+      -webkit-tap-highlight-color: transparent;
+      margin-top: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .login-btn:hover { transform: translateY(-1px); background: #ffffff; }
+    .login-btn:active { transform: translateY(0) scale(0.98); }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .login-btn svg { width: 16px; height: 16px; stroke: #0a0a0a; }
+
+    .error-msg {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(255,70,70,0.08);
+      border: 1px solid rgba(255,70,70,0.25);
+      color: #ff8080;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 13px;
+      text-align: center;
+    }
+
+    .footer-note {
+      margin-top: 24px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 10.5px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: #4a4a4a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="brand">
+      <div class="brand-mark">VT</div>
+      <div class="brand-text">
+        <span class="brand-name">VTMoo</span>
+        <span class="brand-sub">Admin Console</span>
+      </div>
+    </div>
+
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">Enter the admin password to access the control panel.</div>
+
+    <form method="POST" action="{{ url_for('admin_login') }}">
+      <label class="field-label" for="passwordInput">Password</label>
+      <div class="field-wrap">
+        <input class="field-input" type="password" id="passwordInput" name="password" placeholder="••••••••" autocomplete="current-password" required autofocus />
+        <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      </div>
+
+      <button class="login-btn" type="submit">
+        Enter Console
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {% if error %}
+      <div class="error-msg">{{ error }}</div>
+      {% endif %}
+    </form>
+
+    <div class="footer-note">VTMoo &middot; Internal Use Only</div>
+  </div>
+
+  <script>
+    (function () {
+      const toggle = document.getElementById('togglePw');
+      const input = document.getElementById('passwordInput');
+      const eyeOpen = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>';
+      const eyeClosed = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a18.5 18.5 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 7 11 7a18.5 18.5 0 01-2.16 3.19M1 1l22 22M9.5 9.5a3 3 0 004.24 4.24" /></svg>';
+
+      toggle.addEventListener('click', () => {
+        if (input.type === 'password') {
+          input.type = 'text';
+          toggle.innerHTML = eyeClosed;
+        } else {
+          input.type = 'password';
+          toggle.innerHTML = eyeOpen;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
