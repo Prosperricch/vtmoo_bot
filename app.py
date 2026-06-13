@@ -163,6 +163,11 @@ def dashboard():
     if not telegram_id:
         return "Missing telegram_id", 400
 
+    try:
+        telegram_id = int(telegram_id)
+    except ValueError:
+        return "Invalid telegram_id", 400
+
     user = User.query.filter_by(telegram_id=telegram_id).first()
     if not user:
         return "User not found", 404
@@ -170,11 +175,15 @@ def dashboard():
     # Most recent transactions first, limit to last 5
     recent_transactions = list(reversed(user.transaction_history or []))[:5]
 
-    return render_template(
-        'dashboardd.html',
-        user=user,
-        recent_transactions=recent_transactions
-    )
+    try:
+        return render_template(
+            'dashboardd.html',
+            user=user,
+            recent_transactions=recent_transactions
+        )
+    except Exception as e:
+        app.logger.exception("Dashboard render error")
+        return f"Template error: {e}", 500
 
 
 # ===================== FLASK SETUP =====================
