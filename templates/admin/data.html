@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<style>
+  .placeholder-card {
+    background: #ffffff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px;
+    padding: 60px 32px; text-align: center;
+  }
+  .placeholder-icon {
+    width: 56px; height: 56px; border-radius: 14px; background: #f4f4f2;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
+  }
+  .placeholder-icon svg { width: 26px; height: 26px; stroke: #0a0a0a; }
+  .placeholder-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; margin-bottom: 8px; }
+  .placeholder-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 14px; color: #999999; max-width: 460px; margin: 0 auto; line-height: 1.6; }
+</style>
+
+<div class="placeholder-card">
+  <div class="placeholder-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="20" height="10" rx="2" /><path d="M6 11h.01M10 11h.01M14 11h.01M18 11h.01" />
+    </svg>
+  </div>
+  <div class="placeholder-title">Data Plans &amp; Pricing Engine — Coming Next</div>
+  <div class="placeholder-sub">
+    This page will sync plans from your supplier, let you set margins (fixed or percentage), configure student discounts, manually override prices, and recalculate all prices in one click.
+  </div>
+</div>
+{% endblock %}
