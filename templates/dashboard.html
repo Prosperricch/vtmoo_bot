@@ -770,16 +770,6 @@
         if (tg) {
           tg.ready();
           tg.expand();
-
-          const tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
-          if (tgUser && tgUser.id) {
-            const params = new URLSearchParams(window.location.search);
-            const currentId = params.get('telegram_id');
-            if (String(currentId) !== String(tgUser.id)) {
-              params.set('telegram_id', tgUser.id);
-              window.location.replace(window.location.pathname + '?' + params.toString());
-            }
-          }
         }
       } catch (e) {
         console.warn('Telegram WebApp init failed:', e);
