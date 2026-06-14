@@ -3,6 +3,7 @@ import re
 import hmac
 import hashlib
 import threading
+import time
 from functools import wraps
 import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
@@ -42,6 +43,25 @@ PAYSTACK_BASE_URL    = 'https://api.paystack.co'
 FUNDING_FEE_PERCENT  = float(os.environ.get('FUNDING_FEE_PERCENT', '0.05'))
 
 bot = telebot.TeleBot(BOT_TOKEN)
+
+
+# ===================== KEEP-ALIVE =====================
+# Pings the app every 14 minutes so Render free tier never sleeps.
+# PUBLIC_URL must be set to your Render URL (e.g. https://vtmoo.onrender.com).
+def _keep_alive():
+    # Wait 30 s at startup so the server is fully up before the first ping.
+    time.sleep(30)
+    while True:
+        try:
+            if PUBLIC_URL and 'your-app-name' not in PUBLIC_URL:
+                requests.get(f"{PUBLIC_URL}/health", timeout=10)
+        except Exception:
+            pass          # silently ignore — network hiccups are fine
+        time.sleep(840)  # 14 minutes  (Render sleeps after 15 min of no traffic)
+
+_keep_alive_thread = threading.Thread(target=_keep_alive, name='keep-alive', daemon=True)
+_keep_alive_thread.start()
+# ======================================================
 
 
 # ===================== USER MODEL =====================
@@ -1683,6 +1703,14 @@ def run_bot():
 bot_thread = threading.Thread(target=run_bot)
 bot_thread.daemon = True
 bot_thread.start()
+
+
+
+# ===================== HEALTH CHECK =====================
+@app.route('/health')
+def health_check():
+    """Lightweight endpoint used by the keep-alive thread (and uptime monitors)."""
+    return 'ok', 200
 
 
 if __name__ == '__main__':
