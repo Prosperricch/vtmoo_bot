@@ -306,6 +306,75 @@
       animation: fadeUp 0.6s ease 0.2s forwards;
     }
 
+    /* ── SECTION HEAD ROW (title + refresh) ── */
+    .section-head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 32px 0 14px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.2s forwards;
+    }
+
+    .section-head-row .section-head {
+      margin: 0;
+      opacity: 1;
+      animation: none;
+    }
+
+    /* ── REFRESH BALANCE BUTTON ── */
+    .refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #555555;
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 100px;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .refresh-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: #000000;
+    }
+
+    .refresh-btn:active {
+      transform: scale(0.96);
+    }
+
+    .refresh-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: #555555;
+      transition: stroke 0.2s ease, transform 0.4s ease;
+    }
+
+    .refresh-btn:hover svg {
+      stroke: #000000;
+    }
+
+    .refresh-btn.spinning svg {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     /* ── QUICK ACTIONS ── */
     .quick-actions {
       display: flex;
@@ -490,6 +559,35 @@
       padding: 24px 0;
     }
 
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #000000;
+      color: #ffffff;
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      z-index: 1000;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success { background: #000000; }
+    .toast.error { background: #cc0000; }
+    .toast.warning { background: #cc7a00; }
+
     /* ── BOTTOM GLASS NAV ── */
     .bottom-nav {
       position: fixed;
@@ -563,6 +661,12 @@
       }
       .action-card {
         width: 142px;
+      }
+      .refresh-btn span {
+        display: none;
+      }
+      .refresh-btn {
+        padding: 8px;
       }
     }
   </style>
@@ -670,7 +774,18 @@
     </div>
 
     <!-- RECENT ACTIVITY -->
-    <div class="section-head">Recent Activity</div>
+    <div class="section-head-row">
+      <div class="section-head">Recent Activity</div>
+      <button class="refresh-btn" id="refreshBalanceBtn" type="button" aria-label="Refresh balance">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6" />
+          <path d="M1 20v-6h6" />
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10" />
+          <path d="M20.49 15a9 9 0 01-14.85 3.36L1 14" />
+        </svg>
+        <span>Refresh Balance</span>
+      </button>
+    </div>
     <div class="activity-list" id="activityList">
       {% if recent_transactions and recent_transactions|length > 0 %}
         {% for tx in recent_transactions %}
@@ -696,6 +811,9 @@
     </div>
 
   </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
 
   <!-- BOTTOM GLASS NAV -->
   <nav class="bottom-nav">
@@ -897,6 +1015,20 @@
       const balanceWhole   = document.getElementById('balanceWhole');
       const balanceDecimals = document.getElementById('balanceDecimals');
       const activityList   = document.getElementById('activityList');
+      const refreshBtn     = document.getElementById('refreshBalanceBtn');
+      const toast          = document.getElementById('toast');
+
+      // sessionStorage key used by fund.html to track a pending Paystack reference
+      const PENDING_REF_KEY = 'vtmoo_pending_ref_' + TELEGRAM_ID;
+
+      let toastTimer;
+      function showToast(message, type) {
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.className = 'toast ' + (type || 'success');
+        requestAnimationFrame(() => { toast.classList.add('show'); });
+        toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 4500);
+      }
 
       function setBalance(balance) {
         const parts = (Math.round((balance || 0) * 100) / 100).toFixed(2).split('.');
@@ -953,8 +1085,10 @@
             setBalance(data.balance);
             renderActivity(data.transactions);
           }
+          return data;
         } catch (e) {
           // silent fail — server-rendered values already shown
+          return null;
         }
       }
 
@@ -969,6 +1103,52 @@
         }
       });
       window.addEventListener('pageshow', refreshWalletStatus);
+
+      /* ── MANUAL REFRESH BUTTON ──
+         Mirrors the recovery logic on fund.html: first checks any pending
+         Paystack reference (covers bank transfer / OPAY payments that
+         didn't auto-credit), then refreshes the balance + activity feed.
+      */
+      async function handleRefreshClick() {
+        if (refreshBtn.disabled) return;
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('spinning');
+
+        let ref = null;
+        try { ref = sessionStorage.getItem(PENDING_REF_KEY); } catch (e) {}
+
+        try {
+          if (ref) {
+            const body = { telegram_id: TELEGRAM_ID, reference: ref };
+            const res  = await fetch('/api/wallet/check-pending', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body)
+            });
+            const result = await res.json();
+
+            if (result.credited) {
+              try { sessionStorage.removeItem(PENDING_REF_KEY); } catch (e) {}
+              showToast('Wallet funded successfully!', 'success');
+              if (typeof result.balance === 'number') setBalance(result.balance);
+              await refreshWalletStatus();
+            } else {
+              await refreshWalletStatus();
+              showToast('Balance refreshed.', 'success');
+            }
+          } else {
+            await refreshWalletStatus();
+            showToast('Balance refreshed.', 'success');
+          }
+        } catch (e) {
+          showToast('Could not refresh balance. Try again.', 'error');
+        } finally {
+          refreshBtn.disabled = false;
+          refreshBtn.classList.remove('spinning');
+        }
+      }
+
+      refreshBtn.addEventListener('click', handleRefreshClick);
     })();
   </script>
 </body>
