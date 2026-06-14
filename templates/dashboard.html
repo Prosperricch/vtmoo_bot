@@ -183,10 +183,42 @@
       text-transform: none;
     }
 
-    .balance-label-row svg {
+    /* ── EYE TOGGLE BUTTON ── */
+    .eye-toggle-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.2s ease;
+      line-height: 0;
+    }
+
+    .eye-toggle-btn:hover {
+      opacity: 0.6;
+    }
+
+    .eye-toggle-btn:active {
+      transform: scale(0.92);
+    }
+
+    .eye-toggle-btn svg {
       width: 18px;
       height: 18px;
       stroke: #999999;
+      transition: stroke 0.2s ease;
+    }
+
+    .eye-toggle-btn:hover svg {
+      stroke: #555555;
+    }
+
+    /* hidden-eye slash line visibility */
+    .eye-slash-line {
+      transition: opacity 0.2s ease;
     }
 
     .balance-row {
@@ -204,6 +236,15 @@
       color: #000000;
       letter-spacing: -0.01em;
       line-height: 1;
+      /* smooth transition when toggling */
+      transition: filter 0.25s ease, opacity 0.25s ease;
+    }
+
+    /* blurred / hidden state */
+    .balance-amount.hidden {
+      filter: blur(8px);
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .balance-decimals {
@@ -426,6 +467,14 @@
       font-size: 14px;
       color: #1a1a1a;
       flex-shrink: 0;
+      /* blur-hide when balance is hidden */
+      transition: filter 0.25s ease;
+    }
+
+    .activity-amount.hidden {
+      filter: blur(6px);
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .activity-amount.negative {
@@ -549,13 +598,34 @@
     <div class="balance-card">
       <div class="balance-label-row">
         <span class="balance-label">Balance</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
+        <!-- ── EYE TOGGLE: shows/hides the balance amount ── -->
+        <button
+          class="eye-toggle-btn"
+          id="eyeToggleBtn"
+          aria-label="Toggle balance visibility"
+          aria-pressed="false"
+          type="button"
+        >
+          <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- eyeball (always visible) -->
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+            <circle cx="12" cy="12" r="3" />
+            <!-- slash line — shown when balance is hidden -->
+            <line
+              class="eye-slash-line"
+              id="eyeSlash"
+              x1="2"
+              y1="2"
+              x2="22"
+              y2="22"
+              stroke-width="1.8"
+              style="display:none;"
+            />
+          </svg>
+        </button>
       </div>
       <div class="balance-row">
-        <div class="balance-amount">
+        <div class="balance-amount" id="balanceDisplay">
           <span class="balance-naira">₦</span><span id="balanceWhole">{{ "{:,.2f}".format(user.balance or 0).split(".")[0] }}</span><span class="balance-decimals" id="balanceDecimals">.{{ "{:,.2f}".format(user.balance or 0).split(".")[1] }}</span>
         </div>
         <!-- FUND WALLET LINK -->
@@ -774,12 +844,59 @@
       }
     })();
 
+    /* ──────────────────────────────────────────────────────────────
+       EYE TOGGLE — hide / reveal balance + activity amounts
+    ────────────────────────────────────────────────────────────── */
+    (function () {
+      const STORAGE_KEY = 'vtmoo_balance_hidden';
+      const btn          = document.getElementById('eyeToggleBtn');
+      const balanceDisp  = document.getElementById('balanceDisplay');
+      const eyeSlash     = document.getElementById('eyeSlash');
+
+      // Persist the preference so it survives soft refreshes within the session.
+      // We use sessionStorage so it resets when the user properly closes the app.
+      let isHidden = sessionStorage.getItem(STORAGE_KEY) === '1';
+
+      function applyState(hidden, animate) {
+        // Toggle blur on the balance display
+        balanceDisp.classList.toggle('hidden', hidden);
+
+        // Toggle blur on all activity amounts
+        document.querySelectorAll('.activity-amount').forEach(function (el) {
+          el.classList.toggle('hidden', hidden);
+        });
+
+        // Swap eye icon: open eye when visible, eye-with-slash when hidden
+        eyeSlash.style.display = hidden ? '' : 'none';
+
+        // Update aria attribute for accessibility
+        btn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+        btn.setAttribute('aria-label', hidden ? 'Show balance' : 'Hide balance');
+
+        sessionStorage.setItem(STORAGE_KEY, hidden ? '1' : '0');
+      }
+
+      // Apply immediately on load (no animation flash)
+      applyState(isHidden, false);
+
+      btn.addEventListener('click', function () {
+        isHidden = !isHidden;
+        applyState(isHidden, true);
+      });
+
+      // Re-apply the hidden class after the activity list is re-rendered by
+      // the live-refresh function below — we expose this as a global helper.
+      window.__applyEyeState = function () {
+        applyState(isHidden, false);
+      };
+    })();
+
     /* ── LIVE BALANCE & ACTIVITY REFRESH ── */
     (function () {
-      const TELEGRAM_ID = {{ user.telegram_id | tojson }};
-      const balanceWhole = document.getElementById('balanceWhole');
+      const TELEGRAM_ID    = {{ user.telegram_id | tojson }};
+      const balanceWhole   = document.getElementById('balanceWhole');
       const balanceDecimals = document.getElementById('balanceDecimals');
-      const activityList = document.getElementById('activityList');
+      const activityList   = document.getElementById('activityList');
 
       function setBalance(balance) {
         const parts = (Math.round((balance || 0) * 100) / 100).toFixed(2).split('.');
@@ -798,31 +915,39 @@
       function renderActivity(transactions) {
         if (!transactions || !transactions.length) {
           activityList.innerHTML = '<div class="activity-empty">No recent activity yet.</div>';
+          // Re-apply eye state after DOM update
+          if (typeof window.__applyEyeState === 'function') window.__applyEyeState();
           return;
         }
 
-        activityList.innerHTML = transactions.map(tx => {
-          const amount = tx.amount || 0;
+        // ── LIMIT TO 3 MOST RECENT ──
+        const recent = transactions.slice(0, 3);
+
+        activityList.innerHTML = recent.map(function (tx) {
+          const amount   = tx.amount || 0;
           const negative = amount < 0;
-          const sign = amount > 0 ? '+' : '';
-          return `
-            <div class="activity-row">
-              <div class="activity-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ACTIVITY_ICON}</svg>
-              </div>
-              <div class="activity-info">
-                <span class="activity-title">${escapeHtml(tx.description)}</span>
-                <span class="activity-sub">${escapeHtml(tx.date)}</span>
-              </div>
-              <span class="activity-amount ${negative ? 'negative' : ''}">${sign}${Math.round(amount)}</span>
-            </div>
-          `;
+          const sign     = amount > 0 ? '+' : '';
+          return [
+            '<div class="activity-row">',
+              '<div class="activity-icon">',
+                '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ACTIVITY_ICON + '</svg>',
+              '</div>',
+              '<div class="activity-info">',
+                '<span class="activity-title">' + escapeHtml(tx.description) + '</span>',
+                '<span class="activity-sub">' + escapeHtml(tx.date) + '</span>',
+              '</div>',
+              '<span class="activity-amount' + (negative ? ' negative' : '') + '">' + sign + Math.round(amount) + '</span>',
+            '</div>'
+          ].join('');
         }).join('');
+
+        // Re-apply eye state so newly rendered amounts respect the current toggle
+        if (typeof window.__applyEyeState === 'function') window.__applyEyeState();
       }
 
       async function refreshWalletStatus() {
         try {
-          const res = await fetch(`/api/wallet/status?telegram_id=${TELEGRAM_ID}`);
+          const res  = await fetch('/api/wallet/status?telegram_id=' + TELEGRAM_ID);
           const data = await res.json();
           if (data.success) {
             setBalance(data.balance);
@@ -838,7 +963,7 @@
 
       // Refresh again whenever this page becomes visible (e.g. returning
       // from the Fund Wallet page via back navigation / Telegram WebView)
-      document.addEventListener('visibilitychange', () => {
+      document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
           refreshWalletStatus();
         }
