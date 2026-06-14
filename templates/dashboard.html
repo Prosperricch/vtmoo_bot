@@ -556,7 +556,7 @@
       </div>
       <div class="balance-row">
         <div class="balance-amount">
-          <span class="balance-naira">₦</span>{{ "{:,.2f}".format(user.balance or 0).split(".")[0] }}<span class="balance-decimals">.{{ "{:,.2f}".format(user.balance or 0).split(".")[1] }}</span>
+          <span class="balance-naira">₦</span><span id="balanceWhole">{{ "{:,.2f}".format(user.balance or 0).split(".")[0] }}</span><span class="balance-decimals" id="balanceDecimals">.{{ "{:,.2f}".format(user.balance or 0).split(".")[1] }}</span>
         </div>
         <!-- FUND WALLET LINK -->
         <a class="fund-wallet-btn" id="fundWalletBtn" href="{{ url_for('fund_page', telegram_id=user.telegram_id) }}">
@@ -601,7 +601,7 @@
 
     <!-- RECENT ACTIVITY -->
     <div class="section-head">Recent Activity</div>
-    <div class="activity-list">
+    <div class="activity-list" id="activityList">
       {% if recent_transactions and recent_transactions|length > 0 %}
         {% for tx in recent_transactions %}
         <div class="activity-row">
@@ -772,6 +772,78 @@
       } catch (e) {
         console.warn('Telegram WebApp init failed:', e);
       }
+    })();
+
+    /* ── LIVE BALANCE & ACTIVITY REFRESH ── */
+    (function () {
+      const TELEGRAM_ID = {{ user.telegram_id | tojson }};
+      const balanceWhole = document.getElementById('balanceWhole');
+      const balanceDecimals = document.getElementById('balanceDecimals');
+      const activityList = document.getElementById('activityList');
+
+      function setBalance(balance) {
+        const parts = (Math.round((balance || 0) * 100) / 100).toFixed(2).split('.');
+        balanceWhole.textContent = Number(parts[0]).toLocaleString('en-NG');
+        balanceDecimals.textContent = '.' + parts[1];
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+      }
+
+      const ACTIVITY_ICON = '<rect x="2" y="7" width="20" height="10" rx="2" /><path d="M6 11h.01M10 11h.01M14 11h.01" />';
+
+      function renderActivity(transactions) {
+        if (!transactions || !transactions.length) {
+          activityList.innerHTML = '<div class="activity-empty">No recent activity yet.</div>';
+          return;
+        }
+
+        activityList.innerHTML = transactions.map(tx => {
+          const amount = tx.amount || 0;
+          const negative = amount < 0;
+          const sign = amount > 0 ? '+' : '';
+          return `
+            <div class="activity-row">
+              <div class="activity-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ACTIVITY_ICON}</svg>
+              </div>
+              <div class="activity-info">
+                <span class="activity-title">${escapeHtml(tx.description)}</span>
+                <span class="activity-sub">${escapeHtml(tx.date)}</span>
+              </div>
+              <span class="activity-amount ${negative ? 'negative' : ''}">${sign}${Math.round(amount)}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      async function refreshWalletStatus() {
+        try {
+          const res = await fetch(`/api/wallet/status?telegram_id=${TELEGRAM_ID}`);
+          const data = await res.json();
+          if (data.success) {
+            setBalance(data.balance);
+            renderActivity(data.transactions);
+          }
+        } catch (e) {
+          // silent fail — server-rendered values already shown
+        }
+      }
+
+      // Refresh on initial load
+      refreshWalletStatus();
+
+      // Refresh again whenever this page becomes visible (e.g. returning
+      // from the Fund Wallet page via back navigation / Telegram WebView)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          refreshWalletStatus();
+        }
+      });
+      window.addEventListener('pageshow', refreshWalletStatus);
     })();
   </script>
 </body>
