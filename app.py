@@ -1,8 +1,11 @@
 # app.py
 import os
 import re
+import hmac
+import hashlib
 import threading
 from functools import wraps
+import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
@@ -28,6 +31,12 @@ db = SQLAlchemy(app)
 BOT_TOKEN = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
 PUBLIC_URL = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
+
+# ===================== PAYSTACK CONFIG =====================
+PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
+PAYSTACK_BASE_URL = 'https://api.paystack.co'
+FUNDING_FEE_PERCENT = float(os.environ.get('FUNDING_FEE_PERCENT', '0.05'))  # 5% default
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -159,6 +168,25 @@ class DataPlan(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+# ===================== PAYSTACK TRANSACTION MODEL =====================
+class PaystackTransaction(db.Model):
+    __tablename__ = 'vtmoo_paystack_transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    telegram_id = db.Column(db.BigInteger, nullable=False, index=True)
+
+    reference = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    amount = db.Column(db.Float, nullable=False)       # amount credited to wallet (excludes fee)
+    fee = db.Column(db.Float, default=0.0)             # processing fee charged on top
+    total_charged = db.Column(db.Float, nullable=False)  # amount + fee, what Paystack actually charged
+
+    status = db.Column(db.String(20), default='pending')  # pending, success, failed
+    channel = db.Column(db.String(30), nullable=True)     # card, bank_transfer, ussd, etc.
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # ===================== HELPERS =====================
 def get_or_create_user(telegram_id, username, name):
     with app.app_context():
@@ -256,6 +284,99 @@ def admin_required(view_func):
             return redirect(url_for('admin_login'))
         return view_func(*args, **kwargs)
     return wrapped
+
+
+def paystack_verify_transaction(reference):
+    """
+    Call Paystack's Verify Transaction endpoint.
+    Returns the 'data' dict from Paystack on success, or None on failure.
+    """
+    if not PAYSTACK_SECRET_KEY:
+        app.logger.error("PAYSTACK_SECRET_KEY is not configured")
+        return None
+
+    try:
+        resp = requests.get(
+            f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
+            headers={"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"},
+            timeout=15
+        )
+        payload = resp.json()
+    except Exception as e:
+        app.logger.exception(f"Paystack verify request failed: {e}")
+        return None
+
+    if not payload.get('status'):
+        app.logger.warning(f"Paystack verify returned status=false: {payload}")
+        return None
+
+    return payload.get('data')
+
+
+def credit_wallet_for_reference(reference, paystack_data):
+    """
+    Idempotently credit a user's wallet based on a verified Paystack transaction.
+
+    `paystack_data` is the 'data' object returned by Paystack's verify endpoint.
+    Returns (success: bool, message: str, user: User|None).
+    """
+    txn = PaystackTransaction.query.filter_by(reference=reference).first()
+    if not txn:
+        app.logger.warning(f"No PaystackTransaction record found for reference={reference}")
+        return False, "Transaction record not found.", None
+
+    # Already processed — don't credit twice
+    if txn.status == 'success':
+        user = User.query.filter_by(telegram_id=txn.telegram_id).first()
+        return True, "Already credited.", user
+
+    gateway_status = (paystack_data.get('status') or '').lower()
+    if gateway_status != 'success':
+        txn.status = 'failed'
+        txn.updated_at = datetime.utcnow()
+        db.session.commit()
+        return False, f"Payment not successful (status: {gateway_status}).", None
+
+    # Sanity-check the amount Paystack charged matches what we expected
+    amount_paid_kobo = paystack_data.get('amount', 0)
+    expected_total_kobo = round(txn.total_charged * 100)
+    if amount_paid_kobo != expected_total_kobo:
+        app.logger.warning(
+            f"Amount mismatch for reference={reference}: "
+            f"expected {expected_total_kobo}, got {amount_paid_kobo}"
+        )
+        # Still proceed using the amount we originally recorded (txn.amount),
+        # since that's what we quoted the user.
+
+    user = User.query.filter_by(telegram_id=txn.telegram_id).first()
+    if not user:
+        txn.status = 'failed'
+        db.session.commit()
+        return False, "User not found.", None
+
+    # Credit the wallet
+    user.balance = round((user.balance or 0.0) + txn.amount, 2)
+
+    txn.status = 'success'
+    txn.channel = (paystack_data.get('channel') or '')[:30]
+    txn.updated_at = datetime.utcnow()
+
+    db.session.commit()
+
+    user.add_transaction(
+        amount=txn.amount,
+        transaction_type="wallet_funding",
+        description=f"Wallet funded via Paystack ({txn.channel or 'card'})"
+    )
+
+    create_notification(
+        user.telegram_id,
+        "Wallet funded successfully",
+        f"Your wallet was credited with ₦{txn.amount:,.2f}. New balance: ₦{user.balance:,.2f}.",
+        ntype="success"
+    )
+
+    return True, "Wallet credited successfully.", user
 
 
 # Maps network names (as stored in vtmoo_networks.name) to the static image
@@ -542,6 +663,54 @@ def data_page():
         return f"Template error: {e}", 500
 
 
+@app.route('/fund')
+def fund_page():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
+
+    # Most recent funding-related transactions first, limit to last 5
+    all_transactions = list(reversed(user.transaction_history or []))
+    recent_transactions = all_transactions[:5]
+
+    display_transactions = []
+    for tx in recent_transactions:
+        tx_copy = dict(tx)
+        try:
+            tx_date = datetime.fromisoformat(tx_copy.get('date'))
+            tx_copy['date'] = relative_time(tx_date)
+        except (TypeError, ValueError):
+            pass
+        display_transactions.append(tx_copy)
+
+    recent_notifs = Notification.query.filter_by(
+        telegram_id=user.telegram_id
+    ).order_by(Notification.created_at.desc()).limit(5).all()
+
+    notification_list = [{
+        "id": n.id,
+        "type": n.type,
+        "title": n.title,
+        "body": n.body,
+        "date": relative_time(n.created_at),
+        "read": n.read
+    } for n in recent_notifs]
+
+    try:
+        return render_template(
+            'fund.html',
+            user=user,
+            paystack_public_key=PAYSTACK_PUBLIC_KEY,
+            fee_percent=FUNDING_FEE_PERCENT,
+            recent_transactions=display_transactions,
+            recent_notifications=notification_list
+        )
+    except Exception as e:
+        app.logger.exception("Fund page render error")
+        return f"Template error: {e}", 500
+
+
 # ===================== ADMIN ROUTES =====================
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -819,6 +988,211 @@ def purchase_data():
     )
 
     return jsonify(success=True, message="Data purchase successful!")
+
+
+# ===================== PAYSTACK — WALLET FUNDING =====================
+@app.route('/api/wallet/status')
+def wallet_status():
+    telegram_id_str = request.args.get('telegram_id')
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error if isinstance(error, tuple) else (error, 200)
+
+    recent_transactions = list(reversed(user.transaction_history or []))[:5]
+    display_transactions = []
+    for tx in recent_transactions:
+        tx_copy = dict(tx)
+        try:
+            tx_date = datetime.fromisoformat(tx_copy.get('date'))
+            tx_copy['date'] = relative_time(tx_date)
+        except (TypeError, ValueError):
+            pass
+        display_transactions.append(tx_copy)
+
+    recent_notifs = Notification.query.filter_by(
+        telegram_id=user.telegram_id
+    ).order_by(Notification.created_at.desc()).limit(5).all()
+
+    notification_list = [{
+        "id": n.id,
+        "type": n.type,
+        "title": n.title,
+        "body": n.body,
+        "date": relative_time(n.created_at),
+        "read": n.read
+    } for n in recent_notifs]
+
+    return jsonify(
+        success=True,
+        balance=round(user.balance, 2),
+        transactions=display_transactions,
+        notifications=notification_list
+    )
+
+
+@app.route('/api/wallet/initialize', methods=['POST'])
+def wallet_initialize():
+    data = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+    amount_raw = data.get('amount')
+
+    if telegram_id is None:
+        return jsonify(success=False, message="Missing telegram_id"), 400
+
+    if not PAYSTACK_SECRET_KEY:
+        return jsonify(success=False, message="Payments are not configured yet. Please try again later."), 503
+
+    try:
+        amount = float(amount_raw)
+    except (TypeError, ValueError):
+        return jsonify(success=False, message="Invalid amount."), 400
+
+    if amount < 100:
+        return jsonify(success=False, message="Minimum funding amount is ₦100."), 400
+
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if not user:
+        return jsonify(success=False, message="User not found"), 404
+
+    fee = round(amount * FUNDING_FEE_PERCENT, 2)
+    total = round(amount + fee, 2)
+
+    # Build a unique reference for this attempt
+    reference = f"vtmoo_{telegram_id}_{int(datetime.utcnow().timestamp())}"
+
+    # Paystack requires an email; fall back to a synthetic one tied to telegram_id
+    email = f"user{telegram_id}@vtmoo.app"
+
+    callback_url = f"{PUBLIC_URL}/payment/callback?telegram_id={telegram_id}"
+
+    try:
+        resp = requests.post(
+            f"{PAYSTACK_BASE_URL}/transaction/initialize",
+            headers={
+                "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "email": email,
+                "amount": int(round(total * 100)),  # kobo
+                "reference": reference,
+                "callback_url": callback_url,
+                "metadata": {
+                    "telegram_id": telegram_id,
+                    "wallet_amount": amount,
+                    "fee": fee
+                }
+            },
+            timeout=15
+        )
+        payload = resp.json()
+    except Exception as e:
+        app.logger.exception(f"Paystack initialize request failed: {e}")
+        return jsonify(success=False, message="Could not reach payment gateway. Please try again."), 502
+
+    if not payload.get('status'):
+        message = payload.get('message', 'Failed to initialize payment.')
+        return jsonify(success=False, message=message), 502
+
+    pdata = payload.get('data', {})
+
+    # Record the pending transaction so we can verify/credit it later
+    txn = PaystackTransaction(
+        telegram_id=telegram_id,
+        reference=reference,
+        amount=amount,
+        fee=fee,
+        total_charged=total,
+        status='pending'
+    )
+    db.session.add(txn)
+    db.session.commit()
+
+    return jsonify(
+        success=True,
+        authorization_url=pdata.get('authorization_url'),
+        access_code=pdata.get('access_code'),
+        reference=reference,
+        amount=amount,
+        fee=fee,
+        total=total,
+        email=email
+    )
+
+
+@app.route('/api/wallet/verify', methods=['POST'])
+def wallet_verify():
+    data = request.get_json(silent=True) or {}
+    reference = (data.get('reference') or '').strip()
+
+    if not reference:
+        return jsonify(success=False, message="Missing reference"), 400
+
+    pdata = paystack_verify_transaction(reference)
+    if pdata is None:
+        return jsonify(success=False, message="Could not verify transaction with payment gateway."), 502
+
+    success, message, user = credit_wallet_for_reference(reference, pdata)
+
+    if not success:
+        return jsonify(success=False, message=message), 400
+
+    return jsonify(
+        success=True,
+        message=message,
+        balance=round(user.balance, 2) if user else None
+    )
+
+
+@app.route('/api/paystack/webhook', methods=['POST'])
+def paystack_webhook():
+    if not PAYSTACK_SECRET_KEY:
+        return jsonify(success=False), 503
+
+    signature = request.headers.get('x-paystack-signature', '')
+    raw_body = request.get_data()
+
+    expected_signature = hmac.new(
+        PAYSTACK_SECRET_KEY.encode('utf-8'),
+        raw_body,
+        hashlib.sha512
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_signature, signature):
+        app.logger.warning("Paystack webhook signature mismatch")
+        return jsonify(success=False), 401
+
+    event = request.get_json(silent=True) or {}
+    event_type = event.get('event')
+    pdata = event.get('data', {})
+    reference = pdata.get('reference')
+
+    if event_type == 'charge.success' and reference:
+        # Re-verify directly with Paystack rather than trusting the webhook body alone
+        verified = paystack_verify_transaction(reference)
+        if verified is not None:
+            credit_wallet_for_reference(reference, verified)
+
+    # Always 200 so Paystack doesn't keep retrying
+    return jsonify(success=True), 200
+
+
+@app.route('/payment/callback')
+def payment_callback():
+    telegram_id_str = request.args.get('telegram_id')
+    reference = request.args.get('reference') or request.args.get('trxref')
+
+    user, error = get_user_or_404(telegram_id_str)
+    if error:
+        return error
+
+    if reference:
+        pdata = paystack_verify_transaction(reference)
+        if pdata is not None:
+            credit_wallet_for_reference(reference, pdata)
+
+    # Redirect back to the fund page; the frontend will show the latest balance/toast
+    return redirect(url_for('fund_page', telegram_id=user.telegram_id, ref=reference or ''))
 
 
 # ===================== ADMIN API — NETWORK =====================
