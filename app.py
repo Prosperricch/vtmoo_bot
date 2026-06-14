@@ -60,6 +60,8 @@ class User(db.Model):
     pricing_suspended = db.Column(db.Boolean,      default=False)
 
     transaction_pin = db.Column(db.String(256), nullable=True)
+    # True while we're waiting for the user to send their first PIN via Telegram
+    pin_pending     = db.Column(db.Boolean, default=False)
     balance         = db.Column(db.Float, default=0.0)
 
     is_active   = db.Column(db.Boolean, default=True)
@@ -201,25 +203,45 @@ class PaystackTransaction(db.Model):
 
 
 # ===================== HELPERS =====================
+def prompt_pin_setup(telegram_id, is_new_user=False):
+    """Mark user as pin_pending in DB, then ask them to send their PIN."""
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=telegram_id).first()
+        if user and not user.transaction_pin:
+            user.pin_pending = True
+            db.session.commit()
+    if is_new_user:
+        bot.send_message(
+            telegram_id,
+            "✅ *Welcome to VTMoo Virtual Top-up!*\n\n"
+            "To get started, please set a *4-digit* transaction PIN.\n"
+            "You will use this PIN to confirm every purchase.\n\n"
+            "👇 Reply with your 4-digit PIN now:",
+            parse_mode="Markdown"
+        )
+    else:
+        bot.send_message(
+            telegram_id,
+            "🔑 You haven't set a transaction PIN yet.\n\n"
+            "Please reply with your *4-digit* PIN to continue:",
+            parse_mode="Markdown"
+        )
+
+
 def get_or_create_user(telegram_id, username, name):
     with app.app_context():
         user = User.query.filter_by(telegram_id=telegram_id).first()
         if not user:
-            user = User(telegram_id=telegram_id, username=username, name=name)
+            user = User(telegram_id=telegram_id, username=username, name=name, pin_pending=True)
             db.session.add(user)
             db.session.commit()
-            bot.send_message(
-                telegram_id,
-                "✅ Welcome to VTMoo Virtual Top-up!\n\n"
-                "As a new user, please set your **4-digit** transaction PIN. \n\n"
-                "It should be something you can remember:"
-            )
-            bot.register_next_step_handler_by_chat_id(telegram_id, process_first_pin)
+            prompt_pin_setup(telegram_id, is_new_user=True)
         else:
             if not user.transaction_pin:
-                bot.send_message(telegram_id, "🔑 Please set your **4-digit** transaction PIN:")
-                bot.register_next_step_handler_by_chat_id(telegram_id, process_first_pin)
+                prompt_pin_setup(telegram_id, is_new_user=False)
             else:
+                user.pin_pending = False
+                db.session.commit()
                 send_dashboard_link(telegram_id)
     return user
 
@@ -232,21 +254,6 @@ def send_dashboard_link(telegram_id):
         web_app=types.WebAppInfo(url=dashboard_url)
     ))
     bot.send_message(telegram_id, "Welcome back! Tap below to view your dashboard:", reply_markup=markup)
-
-
-def process_first_pin(message):
-    pin = message.text.strip()
-    if not re.match(r'^\d{4}$', pin):
-        bot.send_message(message.chat.id, "❌ PIN must be exactly **4 digits**. Please try again:")
-        bot.register_next_step_handler_by_chat_id(message.chat.id, process_first_pin)
-        return
-    with app.app_context():
-        user = User.query.filter_by(telegram_id=message.from_user.id).first()
-        if user:
-            user.set_pin(pin)
-            db.session.commit()
-            bot.send_message(message.chat.id, "✅ PIN set successfully!\n\nYou can now use the bot.")
-            send_dashboard_link(message.chat.id)
 
 
 def get_telegram_id_from_request(data):
@@ -403,19 +410,96 @@ def start(message):
     get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
 
 
+@bot.message_handler(commands=['setpin'])
+def setpin_command(message):
+    """Allow any user to (re-)enter the PIN setup flow on demand."""
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            bot.send_message(message.chat.id,
+                             "You don't have an account yet. Send /start to create one.")
+            return
+        if user.transaction_pin:
+            bot.send_message(message.chat.id,
+                             "You already have a PIN set.\n"
+                             "To change it, use the Profile section in your dashboard.")
+            return
+        prompt_pin_setup(message.from_user.id, is_new_user=False)
+
+
 @bot.message_handler(commands=['dashboard'])
 def dashboard_command(message):
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=message.from_user.id).first()
+        if not user or not user.transaction_pin:
+            prompt_pin_setup(message.from_user.id, is_new_user=(user is None))
+            return
     send_dashboard_link(message.chat.id)
 
 
 @bot.message_handler(commands=['help'])
 def help_command(message):
     bot.send_message(message.chat.id,
-                     "📋 **VTMoo Commands**\n\n"
-                     "/start - Start the bot\n"
-                     "/dashboard - View your dashboard\n"
-                     "/help - Show this message\n\n"
-                     "More features coming soon...")
+                     "📋 *VTMoo Commands*\n\n"
+                     "/start — Start or re-register\n"
+                     "/dashboard — Open your dashboard\n"
+                     "/setpin — Set your transaction PIN\n"
+                     "/help — Show this message",
+                     parse_mode="Markdown")
+
+
+@bot.message_handler(func=lambda m: True, content_types=['text'])
+def handle_any_text(message):
+    """
+    Persistent PIN collection: intercepts every text message.
+    If the user has pin_pending=True (no PIN set yet), treat their
+    message as a PIN attempt regardless of when they send it —
+    even after a bot restart.
+    """
+    # Ignore messages that are commands (they're handled above)
+    if message.text and message.text.startswith('/'):
+        return
+
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=message.from_user.id).first()
+
+        # Unknown user — ask them to /start
+        if not user:
+            bot.send_message(message.chat.id,
+                             "Please send /start to create your account first.")
+            return
+
+        # User has no PIN yet (pin_pending may or may not be set — we check transaction_pin)
+        if not user.transaction_pin:
+            pin = (message.text or '').strip()
+            if not re.match(r'^\d{4}$', pin):
+                bot.send_message(
+                    message.chat.id,
+                    "❌ That's not a valid PIN.\n"
+                    "Please send exactly *4 digits* (e.g. 1234):",
+                    parse_mode="Markdown"
+                )
+                # Make sure pin_pending is set so next message is also caught
+                if not user.pin_pending:
+                    user.pin_pending = True
+                    db.session.commit()
+                return
+
+            # Valid 4-digit PIN
+            user.set_pin(pin)
+            user.pin_pending = False
+            db.session.commit()
+            bot.send_message(
+                message.chat.id,
+                "✅ *PIN set successfully!*\n\n"
+                "You can now open your dashboard and start using VTMoo.",
+                parse_mode="Markdown"
+            )
+            send_dashboard_link(message.chat.id)
+            return
+
+        # User has a PIN — any random text just gets a nudge to use the dashboard
+        send_dashboard_link(message.chat.id)
 
 
 # ===================== FLASK ROUTES =====================
@@ -1570,6 +1654,7 @@ def run_migrations():
         "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS school VARCHAR(150)",
         "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS user_type VARCHAR(20) DEFAULT 'regular'",
         "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS pricing_suspended BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS pin_pending BOOLEAN DEFAULT FALSE",
         "CREATE TABLE IF NOT EXISTS vtmoo_perks_settings "
         "(id SERIAL PRIMARY KEY, applications_open BOOLEAN DEFAULT TRUE, "
         "total_spots INTEGER DEFAULT 40, show_spots BOOLEAN DEFAULT TRUE, "
