@@ -1,4 +1,3 @@
-# app.py
 import os
 import re
 import hmac
@@ -9,7 +8,7 @@ import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import telebot
 from telebot import types
@@ -28,8 +27,8 @@ app.config['SQLALCHEMY_ECHO'] = False
 db = SQLAlchemy(app)
 
 # ===================== CONFIG =====================
-BOT_TOKEN = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
-PUBLIC_URL = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
+BOT_TOKEN    = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
+PUBLIC_URL   = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
 
 # ===================== DATA SUPPLIER CONFIG =====================
@@ -73,12 +72,12 @@ class User(db.Model):
 
     def add_transaction(self, amount, transaction_type, description, status="success"):
         transaction = {
-            "id":           len(self.transaction_history) + 1,
-            "date":         datetime.utcnow().isoformat(),
-            "amount":       float(amount),
-            "type":         transaction_type,
-            "description":  description,
-            "status":       status,
+            "id":            len(self.transaction_history) + 1,
+            "date":          datetime.utcnow().isoformat(),
+            "amount":        float(amount),
+            "type":          transaction_type,
+            "description":   description,
+            "status":        status,
             "balance_after": round(self.balance, 2)
         }
         history = list(self.transaction_history or [])
@@ -384,9 +383,9 @@ def credit_wallet_for_reference(reference, paystack_data):
 
 
 NETWORK_IMAGES = {
-    'MTN':    '3d-mtn.jpg',
-    'AIRTEL': '3d-airtel.jpg',
-    'GLO':    '3d-glo.jpg',
+    'MTN':     '3d-mtn.jpg',
+    'AIRTEL':  '3d-airtel.jpg',
+    'GLO':     '3d-glo.jpg',
     '9MOBILE': '3d-9mobile.jpg',
 }
 
@@ -580,7 +579,6 @@ def data_page():
         if ptype not in plan_types_seen:
             plan_types_seen.append(ptype)
 
-        # Use user_type column for student pricing
         price = p.student_price if (user.user_type == 'student') else p.regular_price
         label = f"{p.plan_name} - {p.duration} - ₦{price:,.0f}"
 
@@ -663,11 +661,11 @@ def admin_root():
 @app.route('/admin/welcome')
 @admin_required
 def admin_welcome():
-    total_users               = User.query.count()
-    total_balance             = db.session.query(db.func.coalesce(db.func.sum(User.balance), 0.0)).scalar()
-    pending_perks             = PerkApplication.query.filter_by(status='pending').count()
+    total_users                = User.query.count()
+    total_balance              = db.session.query(db.func.coalesce(db.func.sum(User.balance), 0.0)).scalar()
+    pending_perks              = PerkApplication.query.filter_by(status='pending').count()
     unread_notifications_total = Notification.query.filter_by(read=False).count()
-    recent_users              = User.query.order_by(User.created_at.desc()).limit(6).all()
+    recent_users               = User.query.order_by(User.created_at.desc()).limit(6).all()
     return render_template('admin/welcome.html', active_page='welcome',
                            page_title='Welcome', page_crumb='ADMIN / WELCOME',
                            total_users=total_users, total_balance=total_balance,
@@ -789,13 +787,13 @@ def apply_for_perks():
 
 @app.route('/api/data/purchase', methods=['POST'])
 def purchase_data():
-    data       = request.get_json(silent=True) or {}
+    data        = request.get_json(silent=True) or {}
     telegram_id = get_telegram_id_from_request(data)
-    network    = (data.get('network') or '').strip().upper()
-    plan_value = (data.get('plan_value') or '').strip()
-    phone      = (data.get('phone') or '').strip()
-    pin        = (data.get('pin') or '').strip()
-    bypass     = bool(data.get('bypass'))
+    network     = (data.get('network') or '').strip().upper()
+    plan_value  = (data.get('plan_value') or '').strip()
+    phone       = (data.get('phone') or '').strip()
+    pin         = (data.get('pin') or '').strip()
+    bypass      = bool(data.get('bypass'))
 
     if telegram_id is None:
         return jsonify(success=False, message="Missing telegram_id"), 400
@@ -812,7 +810,6 @@ def purchase_data():
     if not user.check_pin(pin):
         return jsonify(success=False, message="Incorrect transaction PIN."), 400
 
-    # Suspension check — never expose "insufficient balance" wording for this
     if user.pricing_suspended:
         return jsonify(success=False,
                        message="Your account access has been suspended. Please contact support."), 403
@@ -822,7 +819,6 @@ def purchase_data():
     if not plan:
         return jsonify(success=False, message="Selected plan is no longer available."), 400
 
-    # Use user_type for pricing
     price = plan.student_price if user.user_type == 'student' else plan.regular_price
 
     if (user.balance or 0) < price:
@@ -942,21 +938,109 @@ def wallet_verify():
     return jsonify(success=True, message=message, balance=round(user.balance, 2) if user else None)
 
 
+@app.route('/api/wallet/check-pending', methods=['POST'])
+def wallet_check_pending():
+    """
+    Called by fund.html on every page load and on visibility-change.
+    Finds any PENDING PaystackTransaction for this user (last 24h),
+    re-verifies each one with Paystack, and credits the wallet if paid.
+    This is the recovery path for bank transfers and OPAY where the
+    Paystack popup fires onClose instead of callback.
+    """
+    data        = request.get_json(silent=True) or {}
+    telegram_id = get_telegram_id_from_request(data)
+    reference   = (data.get('reference') or '').strip()
+
+    if telegram_id is None:
+        return jsonify(success=False, message="Missing telegram_id"), 400
+
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if not user:
+        return jsonify(success=False, message="User not found"), 404
+
+    references_to_check = []
+
+    # If the frontend passed a specific reference, check that first
+    if reference:
+        references_to_check.append(reference)
+
+    # Also scan all PENDING transactions for this user from the last 24 hours
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    pending_txns = (
+        PaystackTransaction.query
+        .filter_by(telegram_id=telegram_id, status='pending')
+        .filter(PaystackTransaction.created_at >= cutoff)
+        .order_by(PaystackTransaction.created_at.desc())
+        .all()
+    )
+    for txn in pending_txns:
+        if txn.reference not in references_to_check:
+            references_to_check.append(txn.reference)
+
+    if not references_to_check:
+        return jsonify(success=True, credited=False,
+                       balance=round(user.balance, 2),
+                       message="No pending transactions found")
+
+    for ref in references_to_check:
+        pdata = paystack_verify_transaction(ref)
+        if pdata is None:
+            continue
+        ok, msg, updated_user = credit_wallet_for_reference(ref, pdata)
+        if ok and updated_user:
+            app.logger.info(
+                f"check-pending credited ref={ref!r} for telegram_id={telegram_id}"
+            )
+            return jsonify(
+                success=True,
+                credited=True,
+                balance=round(updated_user.balance, 2),
+                message="Wallet funded successfully!"
+            )
+
+    return jsonify(success=True, credited=False,
+                   balance=round(user.balance, 2),
+                   message="No new payments confirmed yet.")
+
+
 @app.route('/api/paystack/webhook', methods=['POST'])
 def paystack_webhook():
     if not PAYSTACK_SECRET_KEY:
+        app.logger.error("Webhook received but PAYSTACK_SECRET_KEY not set")
         return jsonify(success=False), 503
+
     signature = request.headers.get('x-paystack-signature', '')
     raw_body  = request.get_data()
-    expected  = hmac.new(PAYSTACK_SECRET_KEY.encode('utf-8'), raw_body, hashlib.sha512).hexdigest()
+
+    expected = hmac.new(
+        PAYSTACK_SECRET_KEY.encode('utf-8'),
+        raw_body,
+        hashlib.sha512
+    ).hexdigest()
+
     if not hmac.compare_digest(expected, signature):
+        app.logger.warning(
+            f"Webhook HMAC mismatch. Got: {signature[:30]}... Expected: {expected[:30]}..."
+        )
         return jsonify(success=False), 401
-    event     = request.get_json(silent=True) or {}
-    reference = (event.get('data') or {}).get('reference')
-    if event.get('event') == 'charge.success' and reference:
+
+    event      = request.get_json(silent=True) or {}
+    event_type = event.get('event', '')
+    reference  = (event.get('data') or {}).get('reference')
+
+    app.logger.info(f"Paystack webhook: event={event_type!r}, reference={reference!r}")
+
+    if event_type == 'charge.success' and reference:
         verified = paystack_verify_transaction(reference)
         if verified is not None:
-            credit_wallet_for_reference(reference, verified)
+            ok, msg, user = credit_wallet_for_reference(reference, verified)
+            app.logger.info(
+                f"Webhook credit: ok={ok}, msg={msg!r}, "
+                f"user={user.telegram_id if user else None}"
+            )
+        else:
+            app.logger.error(f"Webhook: could not verify reference={reference!r}")
+
     return jsonify(success=True), 200
 
 
@@ -1010,16 +1094,16 @@ def admin_api_perks_applications_list():
     for a in apps:
         user = User.query.filter_by(telegram_id=a.telegram_id).first()
         result.append({
-            'id':              a.id,
-            'telegram_id':     a.telegram_id,
-            'user_name':       user.name     if user else 'Unknown',
-            'username':        user.username if user else '',
-            'school':          a.school,
-            'matric_number':   a.matric_number,
-            'level':           a.level,
-            'status':          a.status,
+            'id':               a.id,
+            'telegram_id':      a.telegram_id,
+            'user_name':        user.name     if user else 'Unknown',
+            'username':         user.username if user else '',
+            'school':           a.school,
+            'matric_number':    a.matric_number,
+            'level':            a.level,
+            'status':           a.status,
             'rejection_reason': a.rejection_reason or '',
-            'created_at':      a.created_at.isoformat() if a.created_at else '',
+            'created_at':       a.created_at.isoformat() if a.created_at else '',
         })
     return jsonify(success=True, applications=result)
 
@@ -1027,7 +1111,7 @@ def admin_api_perks_applications_list():
 @app.route('/admin/api/perks/applications/approve', methods=['POST'])
 @admin_required
 def admin_api_perks_approve():
-    data = request.get_json(silent=True) or {}
+    data   = request.get_json(silent=True) or {}
     app_id = data.get('application_id')
     if not app_id:
         return jsonify(success=False, message='Missing application_id'), 400
@@ -1040,9 +1124,8 @@ def admin_api_perks_approve():
     if not user:
         return jsonify(success=False, message='User not found'), 404
 
-    # Check spot limit
-    settings      = PerksSettings.get()
-    active_count  = User.query.filter_by(user_type='student').count()
+    settings     = PerksSettings.get()
+    active_count = User.query.filter_by(user_type='student').count()
     if active_count >= settings.total_spots:
         return jsonify(success=False, message='No spots remaining. Increase total spots in settings.'), 400
 
@@ -1128,8 +1211,8 @@ def admin_api_perks_bulk_approve():
             'Congratulations! You are now a Student Perks member. Student prices have been activated.',
             ntype='success'
         )
-        approved    += 1
-        spots_left  -= 1
+        approved   += 1
+        spots_left -= 1
 
     db.session.commit()
     msg = f'{approved} approved.'
@@ -1182,7 +1265,6 @@ def admin_api_perks_add_member():
     if not identifier:
         return jsonify(success=False, message='Please provide a username or Telegram ID.'), 400
 
-    # Try by telegram_id first, then by username
     user = None
     try:
         tid  = int(identifier)
@@ -1193,7 +1275,6 @@ def admin_api_perks_add_member():
     if not user:
         return jsonify(success=False, message=f'No user found for "{identifier}".'), 404
 
-    # Spot check
     settings     = PerksSettings.get()
     active_count = User.query.filter_by(user_type='student').count()
     if active_count >= settings.total_spots and user.user_type != 'student':
@@ -1252,8 +1333,8 @@ def admin_api_network_update(net_id):
 @app.route('/admin/api/network/toggle/<int:net_id>', methods=['POST'])
 @admin_required
 def admin_api_network_toggle(net_id):
-    net        = Network.query.get_or_404(net_id)
-    data       = request.get_json(silent=True) or {}
+    net           = Network.query.get_or_404(net_id)
+    data          = request.get_json(silent=True) or {}
     net.is_active  = bool(data.get('is_active', not net.is_active))
     net.updated_at = datetime.utcnow()
     db.session.commit()
