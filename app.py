@@ -32,6 +32,10 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2u
 PUBLIC_URL = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
 
+# ===================== DATA SUPPLIER CONFIG =====================
+DATA_SUPPLIER_BASE_URL = os.environ.get('DATA_SUPPLIER_BASE_URL', '')
+DATA_SUPPLIER_API_KEY = os.environ.get('DATA_SUPPLIER_API_KEY', '')
+
 # ===================== PAYSTACK CONFIG =====================
 PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', '')
 PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
@@ -284,6 +288,88 @@ def admin_required(view_func):
             return redirect(url_for('admin_login'))
         return view_func(*args, **kwargs)
     return wrapped
+
+
+def call_data_supplier_api(plan, phone, network):
+    """
+    Place a data purchase with the upstream VTU supplier.
+
+    Returns a dict:
+        {
+            "ok": bool,
+            "error_type": "insufficient_wholesale_balance" | "request_failed" | "rejected" | None,
+            "message": str,            # raw/short message from supplier, for logging only
+            "supplier_reference": str | None
+        }
+
+    NOTE: This is a stub until DATA_SUPPLIER_BASE_URL / DATA_SUPPLIER_API_KEY
+    are configured and wired to the real provider's API. Replace the body of
+    this function with the actual HTTP call to your VTU supplier, mapping
+    their "insufficient balance" response to error_type
+    'insufficient_wholesale_balance' so it is never shown to end users.
+    """
+    if not DATA_SUPPLIER_BASE_URL or not DATA_SUPPLIER_API_KEY:
+        app.logger.error("Data supplier API is not configured (DATA_SUPPLIER_BASE_URL/DATA_SUPPLIER_API_KEY missing)")
+        return {
+            "ok": False,
+            "error_type": "request_failed",
+            "message": "Data supplier API not configured.",
+            "supplier_reference": None
+        }
+
+    try:
+        resp = requests.post(
+            f"{DATA_SUPPLIER_BASE_URL}/data/purchase",
+            headers={
+                "Authorization": f"Bearer {DATA_SUPPLIER_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "network": network,
+                "plan_id": plan.supplier_plan_id,
+                "phone": phone
+            },
+            timeout=20
+        )
+        payload = resp.json()
+    except Exception as e:
+        app.logger.exception(f"Data supplier request failed: {e}")
+        return {
+            "ok": False,
+            "error_type": "request_failed",
+            "message": str(e),
+            "supplier_reference": None
+        }
+
+    status = (payload.get('status') or '').lower()
+    message = (payload.get('message') or '')
+
+    if status in ('success', 'successful', 'completed'):
+        return {
+            "ok": True,
+            "error_type": None,
+            "message": message,
+            "supplier_reference": payload.get('reference') or payload.get('order_id')
+        }
+
+    # Detect insufficient wholesale/supplier-account balance from the
+    # provider's response. Adjust this matching to your supplier's actual
+    # wording/response codes.
+    lowered = message.lower()
+    if 'insufficient balance' in lowered or 'insufficient funds' in lowered or status in ('insufficient_balance',):
+        return {
+            "ok": False,
+            "error_type": "insufficient_wholesale_balance",
+            "message": message,
+            "supplier_reference": None
+        }
+
+    return {
+        "ok": False,
+        "error_type": "rejected",
+        "message": message or "Supplier rejected the request.",
+        "supplier_reference": None
+    }
 
 
 def paystack_verify_transaction(reference):
@@ -964,13 +1050,47 @@ def purchase_data():
 
     price = plan.student_price if user.school else plan.regular_price
 
+    # 1) Check the USER's wallet balance first. This is the normal,
+    #    user-facing check — if their wallet can't cover it, tell them so.
     if user.balance < price:
         return jsonify(success=False, message="Insufficient balance. Please fund your wallet."), 400
 
-    # TODO: integrate with the actual data top-up provider here using
-    # plan.supplier_plan_id and the recipient phone number. If the provider
-    # call fails, do not deduct the user's balance / return an error instead.
+    # 2) The user's wallet has enough — now actually attempt the purchase
+    #    with the upstream data supplier. This may fail for operational
+    #    reasons (e.g. our wholesale/supplier account is out of funds),
+    #    which is NOT the user's fault and must never be shown as
+    #    "insufficient balance" to them.
+    supplier_result = call_data_supplier_api(plan, phone, network)
 
+    if not supplier_result.get('ok'):
+        error_type = supplier_result.get('error_type')
+
+        # Log the real reason internally for support/ops to investigate.
+        app.logger.error(
+            f"Data purchase failed for telegram_id={telegram_id}, "
+            f"plan={plan.supplier_plan_id}, network={network}, "
+            f"error_type={error_type}, supplier_message={supplier_result.get('message')!r}"
+        )
+
+        # Do NOT deduct the user's wallet for a failed supplier call.
+        if error_type == 'insufficient_wholesale_balance':
+            # Our supplier/wholesale account is empty — an internal/business
+            # issue, not the user's. Never expose "insufficient balance"
+            # wording here.
+            return jsonify(
+                success=False,
+                message="Server error. Please contact customer support."
+            ), 502
+
+        # Any other supplier-side failure (network error, rejected request, etc.)
+        return jsonify(
+            success=False,
+            message="Server error. Please contact customer support."
+        ), 502
+
+    # 3) Both the user's balance and the supplier/wholesale balance are fine,
+    #    and the purchase was placed successfully — now deduct from the
+    #    user's wallet and record everything.
     user.balance = round(user.balance - price, 2)
     db.session.commit()
 
