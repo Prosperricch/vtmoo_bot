@@ -121,7 +121,7 @@
       font-size: 13px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #555555;
+      color: #1a1a1a;
       margin: 0 0 14px;
       opacity: 0;
       animation: fadeUp 0.6s ease 0.12s forwards;
@@ -205,7 +205,7 @@
       font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #888888;
+      color: #666666;
       transition: color 0.3s ease;
     }
     .network-card.active .network-name {
@@ -231,6 +231,47 @@
       width: 18px;
       border-radius: 4px;
     }
+    /* ── SELECTION SUMMARY ── */
+    .selection-summary {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.24s forwards;
+    }
+    .summary-chip {
+      flex: 1;
+      min-width: 0;
+      border-radius: 14px;
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .summary-chip-label {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #aaaaaa;
+    }
+    .summary-chip-value {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.01em;
+      color: #000000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .summary-chip-value.placeholder {
+      color: #bbbbbb;
+      font-weight: 600;
+    }
     /* ── FORM CARD ── */
     .form-card {
       border-radius: 20px;
@@ -251,9 +292,18 @@
       font-size: 12px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #888888;
+      color: #666666;
       margin-bottom: 8px;
       display: block;
+    }
+    .field-hint {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: #aaaaaa;
+      text-transform: none;
+      margin-left: 6px;
     }
     /* ── PLAN TYPE TABS ── */
     .plan-tabs {
@@ -472,6 +522,32 @@
       height: 18px;
       stroke: #ffffff;
     }
+    /* ── SECURE PAYMENT BADGE ── */
+    .secure-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 500;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: #999999;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.42s forwards;
+    }
+    .secure-badge svg {
+      width: 14px;
+      height: 14px;
+      stroke: #999999;
+      flex-shrink: 0;
+    }
+    .secure-badge strong {
+      font-weight: 800;
+      color: #00C3F9;
+      letter-spacing: 0;
+    }
     /* ── LOADING SPINNER ── */
     .spinner {
       display: none;
@@ -660,7 +736,7 @@
       <div class="topbar-title">Buy Data</div>
     </div>
     <!-- SELECT NETWORK -->
-    <div class="section-head">Select Network</div>
+    <div class="section-head">Select Network<span class="field-hint" style="text-transform:none; letter-spacing:0.02em;">— tap a logo</span></div>
     <div class="carousel-wrap">
       <div class="carousel" id="networkCarousel">
         {% for network in networks %}
@@ -675,11 +751,26 @@
       </div>
     </div>
     <div class="carousel-dots" id="carouselDots"></div>
+    <!-- SELECTION SUMMARY -->
+    <div class="selection-summary">
+      <div class="summary-chip">
+        <span class="summary-chip-label">Network</span>
+        <span class="summary-chip-value" id="summaryNetwork">—</span>
+      </div>
+      <div class="summary-chip">
+        <span class="summary-chip-label">Plan Type</span>
+        <span class="summary-chip-value" id="summaryPlanType">—</span>
+      </div>
+      <div class="summary-chip">
+        <span class="summary-chip-label">Plan</span>
+        <span class="summary-chip-value placeholder" id="summaryPlan">Not selected</span>
+      </div>
+    </div>
     <!-- FORM -->
     <div class="form-card">
       <!-- PLAN TYPE -->
       <div>
-        <span class="field-label">Plan Type</span>
+        <span class="field-label">Plan Type<span class="field-hint">Tap to choose</span></span>
         <div class="plan-tabs" id="planTabs">
           {% for plan in plan_types %}
           <div class="plan-tab{% if loop.first %} selected{% endif %}" data-plan="{{ plan.value }}">{{ plan.label }}</div>
@@ -729,6 +820,13 @@
       <span class="btn-text">Purchase Data</span>
       <div class="spinner"></div>
     </button>
+    <div class="secure-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="10" rx="2" />
+        <path d="M7 11V7a5 5 0 0110 0v4" />
+      </svg>
+      Payments secured by <strong>Paystack</strong>
+    </div>
   </div>
 
   <!-- CONFIRMATION MODAL -->
@@ -852,6 +950,9 @@
       const modalCancel = document.getElementById('modalCancel');
       const modalConfirm = document.getElementById('modalConfirm');
       const toast = document.getElementById('toast');
+      const summaryNetwork = document.getElementById('summaryNetwork');
+      const summaryPlanType = document.getElementById('summaryPlanType');
+      const summaryPlan = document.getElementById('summaryPlan');
 
       let currentNetwork = cards.length ? cards[0].dataset.network : '';
       let currentPlanType = planTabs.length ? planTabs[0].dataset.plan : '';
@@ -865,12 +966,27 @@
       });
       const dots = Array.from(dotsWrap.children);
 
+      function updateSummary() {
+        summaryNetwork.textContent = currentNetwork || '—';
+        const activeTab = planTabs.find(t => t.dataset.plan === currentPlanType);
+        summaryPlanType.textContent = activeTab ? activeTab.textContent : '—';
+
+        if (dataPlanSelect.value) {
+          summaryPlan.textContent = dataPlanSelect.options[dataPlanSelect.selectedIndex].textContent;
+          summaryPlan.classList.remove('placeholder');
+        } else {
+          summaryPlan.textContent = 'Not selected';
+          summaryPlan.classList.add('placeholder');
+        }
+      }
+
       function setActiveCard(index) {
         cards.forEach((c, i) => c.classList.toggle('active', i === index));
         dots.forEach((d, i) => d.classList.toggle('active', i === index));
         currentNetwork = cards[index].dataset.network;
         populateDataPlans();
         validateForm();
+        updateSummary();
       }
 
       function populateDataPlans() {
@@ -926,6 +1042,7 @@
           currentPlanType = tab.dataset.plan;
           populateDataPlans();
           validateForm();
+          updateSummary();
         });
       });
 
@@ -1003,6 +1120,7 @@
             pinInput.value = '';
             bypassToggle.checked = false;
             validateForm();
+            updateSummary();
           } else {
             showToast(result.message || 'Purchase failed. Please try again.', 'error');
           }
@@ -1016,7 +1134,10 @@
       }
 
       // Event listeners
-      dataPlanSelect.addEventListener('change', validateForm);
+      dataPlanSelect.addEventListener('change', () => {
+        validateForm();
+        updateSummary();
+      });
       phoneInput.addEventListener('input', () => {
         phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11);
         validateForm();
@@ -1056,6 +1177,8 @@
           const first = cards[0];
           carousel.scrollLeft = first.offsetLeft - (carousel.clientWidth - first.offsetWidth) / 2;
         });
+      } else {
+        updateSummary();
       }
     })();
 
