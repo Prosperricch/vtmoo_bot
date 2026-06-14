@@ -20,7 +20,6 @@
       font-family: 'Barlow Condensed', sans-serif; background: #ffffff; color: #000000;
     }
 
-    /* ── COW PATTERN BG ── */
     #bg-canvas-wrapper { position: fixed; inset: 0; width: 100vw; height: 100vh; min-width: 100%; min-height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
     #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
     #bg-overlay { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 75%); }
@@ -29,7 +28,7 @@
 
     @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ── TOP BAR ── */
+    /* TOP BAR */
     .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; opacity: 0; animation: fadeUp 0.6s ease 0.05s forwards; }
     .back-btn {
       width: 44px; height: 44px; border-radius: 14px; background: rgba(0,0,0,0.08);
@@ -39,10 +38,10 @@
     }
     .back-btn:hover { background: rgba(0,0,0,0.12); border-color: rgba(0,0,0,0.25); }
     .back-btn svg { width: 20px; height: 20px; stroke: #1a1a1a; }
-    .page-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em; }
+    .page-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em; color: #000000; }
     .page-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #777777; margin-top: 2px; }
 
-    /* ── PROFILE CARD ── */
+    /* PROFILE CARD */
     .profile-card {
       display: flex; align-items: center; gap: 16px; border-radius: 20px; padding: 22px;
       background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.1);
@@ -55,18 +54,22 @@
       font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em;
     }
     .profile-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    .profile-name { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+    .profile-name { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: #000000; }
     .profile-username { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 13px; color: #888888; }
-    .verified-badge {
-      display: inline-flex; align-items: center; gap: 4px; font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 600; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-      margin-top: 4px; padding: 4px 10px; border-radius: 100px; width: fit-content;
-    }
-    .verified-badge.yes { background: rgba(28,166,76,0.12); color: #1ca64c; }
-    .verified-badge.no { background: rgba(255,153,0,0.12); color: #cc7a00; }
-    .verified-badge svg { width: 12px; height: 12px; }
 
-    /* ── SECTION ── */
+    /* ACCOUNT TYPE BADGE */
+    .account-type-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      margin-top: 5px; padding: 5px 11px; border-radius: 100px; width: fit-content;
+    }
+    .account-type-badge svg { width: 12px; height: 12px; }
+    .account-type-badge.student { background: rgba(37,99,235,0.1); color: #2563eb; }
+    .account-type-badge.regular { background: rgba(0,0,0,0.07); color: #555555; }
+    .account-type-badge.suspended { background: rgba(220,38,38,0.1); color: #dc2626; }
+
+    /* SECTION */
     .section-head {
       font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.18em;
       text-transform: uppercase; color: #000000; margin: 0 0 14px;
@@ -74,14 +77,13 @@
     }
     .section-head.delayed { animation: fadeUp 0.6s ease 0.3s forwards; margin-top: 28px; }
 
-    /* ── INFO LIST ── */
+    /* INFO LIST */
     .info-list { display: flex; flex-direction: column; gap: 10px; opacity: 0; animation: fadeUp 0.6s ease 0.2s forwards; }
     .info-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      display: flex; align-items: center; gap: 14px;
       background: rgba(240,240,240,0.6); border: 1px solid rgba(0,0,0,0.08);
       border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     }
-    .info-label { display: flex; align-items: center; gap: 12px; }
     .info-icon {
       width: 36px; height: 36px; border-radius: 50%; background: rgba(200,200,200,0.4);
       border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -91,16 +93,16 @@
     .info-key { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #999999; }
     .info-value { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 14px; color: #000000; }
 
-    /* ── PIN UPDATE ── */
+    /* PIN FORM */
     .pin-form { display: flex; flex-direction: column; gap: 10px; opacity: 0; animation: fadeUp 0.6s ease 0.36s forwards; }
     .field-input {
       width: 100%; font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 16px;
-      letter-spacing: 0.3em; color: #000000; background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.12);
-      border-radius: 14px; padding: 14px 16px; outline: none; transition: border-color 0.2s ease; text-align: center;
+      letter-spacing: 0.3em; color: #000000; background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.12); border-radius: 14px; padding: 14px 16px;
+      outline: none; transition: border-color 0.2s ease; text-align: center;
     }
     .field-input:focus { border-color: #000000; }
     .field-input::placeholder { color: #aaaaaa; font-weight: 500; letter-spacing: 0.3em; }
-
     .submit-btn {
       width: 100%; font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 15px;
       letter-spacing: 0.04em; color: #ffffff; background: #000000; border: none;
@@ -110,7 +112,6 @@
     .submit-btn:hover { transform: translateY(-2px); background: #333333; }
     .submit-btn:active { transform: translateY(0) scale(0.98); }
     .submit-btn:disabled { background: #cccccc; cursor: not-allowed; transform: none; }
-
     .form-message {
       margin-top: 6px; padding: 12px 16px; border-radius: 12px;
       font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 13px;
@@ -119,7 +120,7 @@
     .form-message.success { display: block; background: rgba(28,166,76,0.12); color: #1ca64c; border: 1px solid rgba(28,166,76,0.25); }
     .form-message.error { display: block; background: rgba(255,0,0,0.08); color: #cc0000; border: 1px solid rgba(255,0,0,0.2); }
 
-    /* ── BOTTOM GLASS NAV ── */
+    /* BOTTOM GLASS NAV */
     .bottom-nav {
       position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 100;
       width: calc(100% - 40px); max-width: 440px; display: flex; align-items: center; justify-content: space-around;
@@ -137,10 +138,7 @@
     .nav-item.active { background: rgba(0,0,0,0.08); box-shadow: inset 0 1px 0 rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-3px); }
     .nav-item.active svg { stroke: #000000; transform: scale(1.08); }
     .nav-item.active span { color: #000000; }
-
-    @media (max-width: 380px) {
-      .nav-item { padding: 9px 12px; }
-    }
+    @media (max-width: 380px) { .nav-item { padding: 9px 12px; } }
   </style>
 </head>
 
@@ -153,7 +151,7 @@
 
     <!-- TOP BAR -->
     <div class="topbar">
-      <a class="back-btn" href="{{ url_for('dashboard', telegram_id=user.telegram_id) }}">
+      <a class="back-btn" href="/dashboard?telegram_id={{ user.telegram_id }}">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
@@ -170,15 +168,31 @@
       <div class="profile-meta">
         <span class="profile-name">{{ user.name or "Unnamed User" }}</span>
         <span class="profile-username">@{{ user.username or "no_username" }}</span>
-        {% if user.is_verified %}
-        <span class="verified-badge yes">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-          Verified
+
+        {% set utype = user.user_type or 'regular' %}
+        {% set is_suspended = user.pricing_suspended %}
+
+        {% if is_suspended %}
+        <span class="account-type-badge suspended">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          Suspended
+        </span>
+        {% elif utype == 'student' %}
+        <span class="account-type-badge student">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+            <path d="M6 12v5c3.33 2.33 8.67 2.33 12 0v-5"/>
+          </svg>
+          Student Account
         </span>
         {% else %}
-        <span class="verified-badge no">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
-          Unverified
+        <span class="account-type-badge regular">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4"/><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7"/>
+          </svg>
+          Regular Account
         </span>
         {% endif %}
       </div>
@@ -187,61 +201,86 @@
     <!-- ACCOUNT INFO -->
     <div class="section-head">Account Info</div>
     <div class="info-list">
+
       <div class="info-row">
-        <div class="info-label">
-          <div class="info-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="8" r="4" /><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
-            </svg>
-          </div>
-          <div class="info-text">
-            <span class="info-key">Full Name</span>
-            <span class="info-value">{{ user.name or "Not set" }}</span>
-          </div>
+        <div class="info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4"/><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7"/>
+          </svg>
+        </div>
+        <div class="info-text">
+          <span class="info-key">Full Name</span>
+          <span class="info-value">{{ user.name or "Not set" }}</span>
         </div>
       </div>
 
       <div class="info-row">
-        <div class="info-label">
-          <div class="info-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-            </svg>
-          </div>
-          <div class="info-text">
-            <span class="info-key">Phone Number</span>
-            <span class="info-value">{{ user.phone or "Not set" }}</span>
-          </div>
+        <div class="info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+          </svg>
+        </div>
+        <div class="info-text">
+          <span class="info-key">Phone Number</span>
+          <span class="info-value">{{ user.phone or "Not set" }}</span>
         </div>
       </div>
 
       <div class="info-row">
-        <div class="info-label">
-          <div class="info-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
-            </svg>
-          </div>
-          <div class="info-text">
-            <span class="info-key">Telegram ID</span>
-            <span class="info-value">{{ user.telegram_id }}</span>
-          </div>
+        <div class="info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
+          </svg>
+        </div>
+        <div class="info-text">
+          <span class="info-key">Telegram ID</span>
+          <span class="info-value">{{ user.telegram_id }}</span>
         </div>
       </div>
 
       <div class="info-row">
-        <div class="info-label">
-          <div class="info-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-          </div>
-          <div class="info-text">
-            <span class="info-key">Member Since</span>
-            <span class="info-value">{{ user.created_at.strftime('%d %b %Y') if user.created_at else "Unknown" }}</span>
-          </div>
+        <div class="info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z"/><path d="M12 6v12"/>
+          </svg>
+        </div>
+        <div class="info-text">
+          <span class="info-key">Account Type</span>
+          <span class="info-value">
+            {% if is_suspended %}Suspended
+            {% elif utype == 'student' %}Student
+            {% else %}Regular{% endif %}
+          </span>
         </div>
       </div>
+
+      {% if user.school %}
+      <div class="info-row">
+        <div class="info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+            <path d="M6 12v5c3.33 2.33 8.67 2.33 12 0v-5"/>
+          </svg>
+        </div>
+        <div class="info-text">
+          <span class="info-key">School</span>
+          <span class="info-value">{{ user.school }}</span>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="info-row">
+        <div class="info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+          </svg>
+        </div>
+        <div class="info-text">
+          <span class="info-key">Member Since</span>
+          <span class="info-value">{{ user.created_at.strftime('%d %b %Y') if user.created_at else "Unknown" }}</span>
+        </div>
+      </div>
+
     </div>
 
     <!-- CHANGE PIN -->
@@ -258,27 +297,27 @@
 
   <!-- BOTTOM GLASS NAV -->
   <nav class="bottom-nav">
-    <a class="nav-item" data-nav="home" href="{{ url_for('dashboard', telegram_id=user.telegram_id) }}">
+    <a class="nav-item" href="/dashboard?telegram_id={{ user.telegram_id }}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9.5L12 3l9 6.5" /><path d="M5 9v11h14V9" />
+        <path d="M3 9.5L12 3l9 6.5"/><path d="M5 9v11h14V9"/>
       </svg>
       <span>Home</span>
     </a>
-    <a class="nav-item" data-nav="perks" href="{{ url_for('perks', telegram_id=user.telegram_id) }}">
+    <a class="nav-item" href="/perks?telegram_id={{ user.telegram_id }}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z" /><path d="M12 6v12" />
+        <path d="M22 12l-4.6 9-5.4-3-5.4 3L2 12l4.6-9 5.4 3 5.4-3z"/><path d="M12 6v12"/>
       </svg>
       <span>Perks</span>
     </a>
-    <a class="nav-item" data-nav="notifications" href="{{ url_for('notifications', telegram_id=user.telegram_id) }}">
+    <a class="nav-item" href="/notifications?telegram_id={{ user.telegram_id }}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
+        <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
       </svg>
       <span>Alerts</span>
     </a>
-    <a class="nav-item active" data-nav="profile" href="{{ url_for('profile', telegram_id=user.telegram_id) }}">
+    <a class="nav-item active" href="/profile?telegram_id={{ user.telegram_id }}">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="8" r="4" /><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7" />
+        <circle cx="12" cy="8" r="4"/><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7"/>
       </svg>
       <span>Profile</span>
     </a>
@@ -298,8 +337,7 @@
       }
       const rand = mulberry32(seed || 12345);
       ctx.fillStyle = WHITE; ctx.fillRect(0, 0, width, height);
-      const numBlobs = 25;
-      for (let i = 0; i < numBlobs; i++) {
+      for (let i = 0; i < 25; i++) {
         const cx = rand() * width, cy = rand() * height, baseRadius = 80 + rand() * 200;
         ctx.fillStyle = BLACK; ctx.beginPath();
         const points = 8 + Math.floor(rand() * 6), coords = [];
@@ -336,7 +374,7 @@
       window.visualViewport && window.visualViewport.addEventListener('resize', function () { setTimeout(resize, 100); });
     })();
 
-    /* ── TELEGRAM MINI APP INIT ── */
+    /* ── TELEGRAM INIT ── */
     (function () {
       try {
         const tg = window.Telegram && window.Telegram.WebApp;
@@ -344,14 +382,14 @@
       } catch (e) { console.warn('Telegram WebApp init failed:', e); }
     })();
 
-    /* ── PIN UPDATE FORM ── */
+    /* ── PIN UPDATE ── */
     (function () {
-      const pinForm = document.getElementById('pinForm');
-      const currentPin = document.getElementById('currentPin');
-      const newPin = document.getElementById('newPin');
-      const confirmPin = document.getElementById('confirmPin');
+      const pinForm      = document.getElementById('pinForm');
+      const currentPin   = document.getElementById('currentPin');
+      const newPin       = document.getElementById('newPin');
+      const confirmPin   = document.getElementById('confirmPin');
       const pinSubmitBtn = document.getElementById('pinSubmitBtn');
-      const pinMessage = document.getElementById('pinMessage');
+      const pinMessage   = document.getElementById('pinMessage');
 
       [currentPin, newPin, confirmPin].forEach(input => {
         input.addEventListener('input', () => {
@@ -361,9 +399,7 @@
 
       function getTelegramId() {
         const tg = window.Telegram && window.Telegram.WebApp;
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-          return tg.initDataUnsafe.user.id;
-        }
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) return tg.initDataUnsafe.user.id;
         return new URLSearchParams(window.location.search).get('telegram_id');
       }
 
