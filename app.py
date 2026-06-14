@@ -543,10 +543,26 @@ def perks():
     application = PerkApplication.query.filter_by(telegram_id=user.telegram_id)\
         .order_by(PerkApplication.created_at.desc()).first()
 
+    # Load perks settings so the user page knows if applications are open
+    settings = PerksSettings.get()
+
+    # Count active student members to compute spots remaining
+    active_members_count = User.query.filter_by(user_type='student').count()
+    spots_remaining = max(0, settings.total_spots - active_members_count)
+
     try:
-        return render_template('perks.html', user=user,
-                               perk_status=application.status if application else None,
-                               perk_rejection_reason=application.rejection_reason if application else None)
+        return render_template(
+            'perks.html',
+            user=user,
+            perk_status=application.status if application else None,
+            perk_rejection_reason=application.rejection_reason if application else None,
+            # Settings passed to template
+            apps_open=settings.applications_open,
+            allow_applications=settings.allow_applications,
+            show_spots=settings.show_spots,
+            spots_remaining=spots_remaining,
+            total_spots=settings.total_spots,
+        )
     except Exception as e:
         app.logger.exception("Perks render error")
         return f"Template error: {e}", 500
@@ -768,6 +784,17 @@ def apply_for_perks():
         return jsonify(success=False, message="Missing telegram_id"), 400
     if not school or not matric_number or not level:
         return jsonify(success=False, message="Please fill in all fields."), 400
+
+    # Check if applications are currently open/allowed
+    settings = PerksSettings.get()
+    if not settings.applications_open or not settings.allow_applications:
+        return jsonify(success=False, message="Applications are currently closed. Please check back later."), 403
+
+    # Check spots
+    active_count = User.query.filter_by(user_type='student').count()
+    if active_count >= settings.total_spots:
+        return jsonify(success=False, message="All available spots have been filled. Applications are no longer being accepted at this time."), 403
+
     user = User.query.filter_by(telegram_id=telegram_id).first()
     if not user:
         return jsonify(success=False, message="User not found"), 404
@@ -940,13 +967,6 @@ def wallet_verify():
 
 @app.route('/api/wallet/check-pending', methods=['POST'])
 def wallet_check_pending():
-    """
-    Called by fund.html on every page load and on visibility-change.
-    Finds any PENDING PaystackTransaction for this user (last 24h),
-    re-verifies each one with Paystack, and credits the wallet if paid.
-    This is the recovery path for bank transfers and OPAY where the
-    Paystack popup fires onClose instead of callback.
-    """
     data        = request.get_json(silent=True) or {}
     telegram_id = get_telegram_id_from_request(data)
     reference   = (data.get('reference') or '').strip()
@@ -960,11 +980,9 @@ def wallet_check_pending():
 
     references_to_check = []
 
-    # If the frontend passed a specific reference, check that first
     if reference:
         references_to_check.append(reference)
 
-    # Also scan all PENDING transactions for this user from the last 24 hours
     cutoff = datetime.utcnow() - timedelta(hours=24)
     pending_txns = (
         PaystackTransaction.query
@@ -1063,11 +1081,17 @@ def payment_callback():
 @admin_required
 def admin_api_perks_settings_get():
     s = PerksSettings.get()
+    # Also compute live counts
+    active_members = User.query.filter_by(user_type='student').count()
+    pending_apps   = PerkApplication.query.filter_by(status='pending').count()
     return jsonify(success=True, settings={
         'applications_open':  s.applications_open,
         'total_spots':        s.total_spots,
         'show_spots':         s.show_spots,
         'allow_applications': s.allow_applications,
+        'active_members':     active_members,
+        'spots_remaining':    max(0, s.total_spots - active_members),
+        'pending_apps':       pending_apps,
     })
 
 
@@ -1082,7 +1106,16 @@ def admin_api_perks_settings_save():
     s.allow_applications = bool(data.get('allow_applications', s.allow_applications))
     s.updated_at         = datetime.utcnow()
     db.session.commit()
-    return jsonify(success=True, message='Settings saved.')
+    # Return updated counts
+    active_members = User.query.filter_by(user_type='student').count()
+    return jsonify(success=True, message='Settings saved.', settings={
+        'applications_open':  s.applications_open,
+        'total_spots':        s.total_spots,
+        'show_spots':         s.show_spots,
+        'allow_applications': s.allow_applications,
+        'active_members':     active_members,
+        'spots_remaining':    max(0, s.total_spots - active_members),
+    })
 
 
 # ── ADMIN API: PERKS APPLICATIONS ────────────────────────────────────
@@ -1140,7 +1173,7 @@ def admin_api_perks_approve():
     create_notification(
         user.telegram_id,
         '🎉 Student Perks Approved!',
-        'Congratulations! You are now a Student Perks member. Student prices have been activated.',
+        'Congratulations! You are now a Student Perks member. Student prices have been activated on your account.',
         ntype='success'
     )
     return jsonify(success=True, message='Application approved.')
@@ -1169,7 +1202,7 @@ def admin_api_perks_reject():
         create_notification(
             user.telegram_id,
             'Student Perks application not approved',
-            f'Your application was not approved.{" Reason: " + reason if reason else ""}',
+            f'Your application was not approved.{" Reason: " + reason if reason else " Please contact support for more information."}',
             ntype='warning'
         )
     return jsonify(success=True, message='Application rejected.')
@@ -1208,7 +1241,7 @@ def admin_api_perks_bulk_approve():
         create_notification(
             user.telegram_id,
             '🎉 Student Perks Approved!',
-            'Congratulations! You are now a Student Perks member. Student prices have been activated.',
+            'Congratulations! You are now a Student Perks member. Student prices have been activated on your account.',
             ntype='success'
         )
         approved   += 1
@@ -1243,7 +1276,7 @@ def admin_api_perks_bulk_reject():
             create_notification(
                 user.telegram_id,
                 'Student Perks application not approved',
-                f'Your application was not approved.{" Reason: " + reason if reason else ""}',
+                f'Your application was not approved.{" Reason: " + reason if reason else " Please contact support for more information."}',
                 ntype='warning'
             )
         rejected += 1
@@ -1525,10 +1558,10 @@ def admin_api_users_revoke():
     user.school            = None
     user.pricing_suspended = False
     db.session.commit()
-    create_notification(user.telegram_id, "Student code revoked",
-                        "Your student code and school affiliation have been removed by an admin.",
+    create_notification(user.telegram_id, "Student Perks removed",
+                        "Your student perks and school affiliation have been removed. You now have regular pricing.",
                         ntype="warning")
-    return jsonify(success=True, message=f"Code revoked for {user.name or user.username or 'User'}.")
+    return jsonify(success=True, message=f"Perks revoked for {user.name or user.username or 'User'}.")
 
 
 # ===================== FLASK SETUP =====================
