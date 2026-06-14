@@ -35,7 +35,6 @@
       color: #000000;
     }
 
-    /* ── COW PATTERN BG ── */
     #bg-canvas-wrapper {
       position: fixed;
       inset: 0;
@@ -66,7 +65,6 @@
       background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 75%);
     }
 
-    /* ── PAGE FRAME ── */
     .app {
       position: relative;
       z-index: 10;
@@ -83,7 +81,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── TOP BAR ── */
     .topbar {
       display: flex;
       align-items: center;
@@ -129,7 +126,6 @@
       color: #000000;
     }
 
-    /* ── BALANCE CARD ── */
     .balance-card {
       border-radius: 20px;
       padding: 24px 22px;
@@ -192,7 +188,28 @@
       color: #888888;
     }
 
-    /* ── SECTION HEADERS ── */
+    /* pending banner */
+    .pending-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 165, 0, 0.1);
+      border: 1px solid rgba(255, 165, 0, 0.3);
+      border-radius: 14px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      color: #996600;
+    }
+    .pending-banner.visible { display: flex; }
+    .pending-banner svg {
+      width: 16px; height: 16px;
+      stroke: #cc8800;
+      flex-shrink: 0;
+    }
+    .pending-banner strong { font-family: 'Barlow', sans-serif; font-weight: 800; }
+
     .section-head {
       font-family: 'Barlow', sans-serif;
       font-weight: 800;
@@ -209,7 +226,6 @@
       margin-top: 28px;
     }
 
-    /* ── AMOUNT INPUT CARD ── */
     .amount-card {
       border-radius: 20px;
       padding: 22px;
@@ -256,7 +272,6 @@
       color: #c4c4c4;
     }
 
-    /* remove number spinners */
     .amount-input-row input::-webkit-outer-spin-button,
     .amount-input-row input::-webkit-inner-spin-button {
       -webkit-appearance: none;
@@ -266,7 +281,6 @@
       -moz-appearance: textfield;
     }
 
-    /* ── QUICK AMOUNT GRID ── */
     .quick-amounts {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -300,7 +314,6 @@
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
     }
 
-    /* ── SUMMARY CARD ── */
     .summary-card {
       border-radius: 20px;
       padding: 22px;
@@ -352,7 +365,6 @@
       font-weight: 800;
     }
 
-    /* ── FUND BUTTON ── */
     .fund-submit-btn {
       width: 100%;
       display: flex;
@@ -397,7 +409,6 @@
       stroke: #ffffff;
     }
 
-    /* ── LOADING SPINNER ── */
     .spinner {
       display: none;
       width: 18px;
@@ -444,7 +455,6 @@
       letter-spacing: 0;
     }
 
-    /* ── ACTIVITY LIST ── */
     .activity-card {
       border-radius: 20px;
       padding: 8px 22px;
@@ -485,17 +495,9 @@
       stroke-width: 2;
     }
 
-    .activity-icon.credit {
-      background: rgba(0, 180, 90, 0.1);
-    }
-    .activity-icon.credit svg {
-      stroke: #009e4f;
-    }
-
-    .activity-icon.debit {
-      background: rgba(0, 0, 0, 0.05);
-    }
-
+    .activity-icon.credit { background: rgba(0, 180, 90, 0.1); }
+    .activity-icon.credit svg { stroke: #009e4f; }
+    .activity-icon.debit { background: rgba(0, 0, 0, 0.05); }
     .activity-icon.notif-success svg { stroke: #009e4f; }
     .activity-icon.notif-success { background: rgba(0, 180, 90, 0.1); }
     .activity-icon.notif-info svg { stroke: #0066cc; }
@@ -540,12 +542,8 @@
       white-space: nowrap;
     }
 
-    .activity-amount.positive {
-      color: #009e4f;
-    }
-    .activity-amount.negative {
-      color: #000000;
-    }
+    .activity-amount.positive { color: #009e4f; }
+    .activity-amount.negative { color: #000000; }
 
     .activity-empty {
       font-family: 'Barlow Condensed', sans-serif;
@@ -555,7 +553,6 @@
       padding: 22px 0;
     }
 
-    /* ── TOAST ── */
     .toast {
       position: fixed;
       bottom: 24px;
@@ -580,12 +577,9 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
-    .toast.success {
-      background: #000000;
-    }
-    .toast.error {
-      background: #cc0000;
-    }
+    .toast.success { background: #000000; }
+    .toast.error { background: #cc0000; }
+    .toast.warning { background: #cc7a00; }
   </style>
 </head>
 
@@ -606,6 +600,15 @@
         </svg>
       </div>
       <div class="topbar-title">Fund Wallet</div>
+    </div>
+
+    <!-- PENDING PAYMENT BANNER -->
+    <div class="pending-banner" id="pendingBanner">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span><strong>Checking your last payment…</strong> This may take a few seconds.</span>
     </div>
 
     <!-- CURRENT BALANCE -->
@@ -689,9 +692,6 @@
   <script>
     /* ── COW PATTERN BG ── */
     function drawCowPattern(ctx, width, height, seed) {
-      const BLACK = '#000000';
-      const WHITE = '#ffffff';
-
       function mulberry32(a) {
         return function () {
           var t = a += 0x6D2B79F5;
@@ -700,58 +700,38 @@
           return ((t ^ t >>> 14) >>> 0) / 4294967296;
         };
       }
-
       const rand = mulberry32(seed || 12345);
-
-      ctx.fillStyle = WHITE;
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, width, height);
-
-      const numBlobs = 25;
-
-      for (let i = 0; i < numBlobs; i++) {
+      for (let i = 0; i < 25; i++) {
         const cx = rand() * width;
         const cy = rand() * height;
         const baseRadius = 80 + rand() * 200;
-
-        ctx.fillStyle = BLACK;
+        ctx.fillStyle = '#000000';
         ctx.beginPath();
-
         const points = 8 + Math.floor(rand() * 6);
         const coords = [];
-
         for (let p = 0; p < points; p++) {
           const angle = (p / points) * Math.PI * 2;
           const r = baseRadius * (0.6 + rand() * 0.8);
           const wobble = (rand() - 0.5) * 40;
-          coords.push({
-            x: cx + Math.cos(angle) * r + wobble,
-            y: cy + Math.sin(angle) * r + wobble
-          });
+          coords.push({ x: cx + Math.cos(angle) * r + wobble, y: cy + Math.sin(angle) * r + wobble });
         }
-
         for (let p = 0; p < coords.length; p++) {
           const curr = coords[p];
           const next = coords[(p + 1) % coords.length];
           const midX = (curr.x + next.x) / 2;
           const midY = (curr.y + next.y) / 2;
-          if (p === 0) {
-            ctx.moveTo(midX, midY);
-          } else {
-            ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
-          }
+          if (p === 0) ctx.moveTo(midX, midY);
+          else ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
         }
-
         ctx.closePath();
         ctx.fill();
       }
-
       for (let i = 0; i < 15; i++) {
-        const sx = rand() * width;
-        const sy = rand() * height;
-        const sr = 10 + rand() * 30;
-        ctx.fillStyle = BLACK;
+        ctx.fillStyle = '#000000';
         ctx.beginPath();
-        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        ctx.arc(rand() * width, rand() * height, 10 + rand() * 30, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -759,30 +739,18 @@
     (function () {
       const canvas = document.getElementById('bg-canvas');
       const ctx = canvas.getContext('2d', { alpha: false });
-
       function resize() {
         const w = Math.max(window.screen.width, window.innerWidth, document.documentElement.clientWidth);
         const h = Math.max(window.screen.height, window.innerHeight, document.documentElement.clientHeight);
-
-        canvas.width = w;
-        canvas.height = h;
-
+        canvas.width = w; canvas.height = h;
         const wrapper = document.getElementById('bg-canvas-wrapper');
-        wrapper.style.width = w + 'px';
-        wrapper.style.height = h + 'px';
-
+        wrapper.style.width = w + 'px'; wrapper.style.height = h + 'px';
         drawCowPattern(ctx, w, h, 12345);
       }
-
       resize();
-
       window.addEventListener('resize', resize);
-      window.addEventListener('orientationchange', function () {
-        setTimeout(resize, 300);
-      });
-      window.visualViewport && window.visualViewport.addEventListener('resize', function () {
-        setTimeout(resize, 100);
-      });
+      window.addEventListener('orientationchange', () => setTimeout(resize, 300));
+      window.visualViewport && window.visualViewport.addEventListener('resize', () => setTimeout(resize, 100));
     })();
 
     /* ── FUND WALLET LOGIC ── */
@@ -791,18 +759,24 @@
       const PAYSTACK_PUBLIC_KEY = {{ paystack_public_key | tojson }};
       const FEE_PERCENT = {{ fee_percent | tojson }};
 
-      const amountInput = document.getElementById('amountInput');
-      const chips = document.querySelectorAll('.amount-chip');
-      const sumAmount = document.getElementById('sumAmount');
-      const sumFee = document.getElementById('sumFee');
-      const sumTotal = document.getElementById('sumTotal');
-      const submitBtn = document.getElementById('fundSubmitBtn');
-      const toast = document.getElementById('toast');
-      const balanceWhole = document.getElementById('balanceWhole');
+      // Storage key for pending payment reference
+      // We use a key scoped to the telegram_id so multiple users on the same device don't collide
+      const PENDING_REF_KEY = 'vtmoo_pending_ref_' + TELEGRAM_ID;
+
+      const amountInput    = document.getElementById('amountInput');
+      const chips          = document.querySelectorAll('.amount-chip');
+      const sumAmount      = document.getElementById('sumAmount');
+      const sumFee         = document.getElementById('sumFee');
+      const sumTotal       = document.getElementById('sumTotal');
+      const submitBtn      = document.getElementById('fundSubmitBtn');
+      const toast          = document.getElementById('toast');
+      const balanceWhole   = document.getElementById('balanceWhole');
       const balanceDecimals = document.getElementById('balanceDecimals');
-      const activityCard = document.getElementById('activityCard');
+      const activityCard   = document.getElementById('activityCard');
+      const pendingBanner  = document.getElementById('pendingBanner');
 
       let isSubmitting = false;
+      let pendingCheckDone = false;
 
       function formatNaira(value) {
         return '₦' + value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -814,15 +788,13 @@
         balanceDecimals.textContent = '.' + parts[1];
       }
 
+      let toastTimer;
       function showToast(message, type) {
+        clearTimeout(toastTimer);
         toast.textContent = message;
         toast.className = 'toast ' + (type || 'success');
-        requestAnimationFrame(() => {
-          toast.classList.add('show');
-        });
-        setTimeout(() => {
-          toast.classList.remove('show');
-        }, 4000);
+        requestAnimationFrame(() => { toast.classList.add('show'); });
+        toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 4500);
       }
 
       function updateSummary() {
@@ -830,116 +802,79 @@
         const amount = isNaN(raw) || raw < 0 ? 0 : raw;
         const fee = amount * FEE_PERCENT;
         const total = amount + fee;
-
         sumAmount.textContent = formatNaira(amount);
         sumFee.textContent = formatNaira(fee);
         sumTotal.textContent = formatNaira(total);
-
         submitBtn.disabled = amount <= 0 || isSubmitting;
-
         chips.forEach(chip => {
           chip.classList.toggle('selected', parseFloat(chip.dataset.amount) === amount && amount > 0);
         });
       }
 
       amountInput.addEventListener('input', updateSummary);
-
       chips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          amountInput.value = chip.dataset.amount;
-          updateSummary();
-        });
+        chip.addEventListener('click', () => { amountInput.value = chip.dataset.amount; updateSummary(); });
       });
 
       /* ── ACTIVITY RENDERING ── */
       const ICONS = {
-        credit: '<path d="M12 5v14M5 12l7-7 7 7" />',
-        debit: '<path d="M12 19V5M5 12l7 7 7-7" />',
+        credit:  '<path d="M12 5v14M5 12l7-7 7 7" />',
+        debit:   '<path d="M12 19V5M5 12l7 7 7-7" />',
         success: '<path d="M20 6L9 17l-5-5" />',
-        info: '<circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />',
+        info:    '<circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />',
         warning: '<path d="M12 9v4M12 17h.01M10.3 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.7 3.86a2 2 0 00-3.4 0z" />'
       };
-
-      function renderActivity(transactions, notifications) {
-        const items = [];
-
-        (transactions || []).forEach(tx => {
-          items.push({
-            kind: 'transaction',
-            sortKey: tx.date,
-            title: tx.description || (tx.type || 'Transaction'),
-            sub: tx.date,
-            amount: tx.amount,
-            positive: tx.amount > 0
-          });
-        });
-
-        (notifications || []).forEach(n => {
-          items.push({
-            kind: 'notification',
-            sortKey: n.date,
-            title: n.title,
-            sub: n.date,
-            ntype: n.type || 'info'
-          });
-        });
-
-        if (!items.length) {
-          activityCard.innerHTML = '<div class="activity-empty">No recent activity yet.</div>';
-          return;
-        }
-
-        // Show transactions first, then notifications (both already most-recent-first)
-        const ordered = [
-          ...items.filter(i => i.kind === 'transaction'),
-          ...items.filter(i => i.kind === 'notification')
-        ].slice(0, 6);
-
-        activityCard.innerHTML = ordered.map(item => {
-          if (item.kind === 'transaction') {
-            const isPositive = item.positive;
-            const iconClass = isPositive ? 'credit' : 'debit';
-            const iconSvg = isPositive ? ICONS.credit : ICONS.debit;
-            const amountClass = isPositive ? 'positive' : 'negative';
-            const amountText = (isPositive ? '+' : '') + formatNaira(Math.abs(item.amount));
-            return `
-              <div class="activity-row">
-                <div class="activity-icon ${iconClass}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
-                </div>
-                <div class="activity-body">
-                  <span class="activity-title">${escapeHtml(item.title)}</span>
-                  <span class="activity-sub">${escapeHtml(item.sub)}</span>
-                </div>
-                <span class="activity-amount ${amountClass}">${amountText}</span>
-              </div>
-            `;
-          } else {
-            const ntype = item.ntype === 'success' ? 'notif-success'
-              : item.ntype === 'warning' ? 'notif-warning'
-              : 'notif-info';
-            const iconSvg = item.ntype === 'success' ? ICONS.success
-              : item.ntype === 'warning' ? ICONS.warning
-              : ICONS.info;
-            return `
-              <div class="activity-row">
-                <div class="activity-icon ${ntype}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
-                </div>
-                <div class="activity-body">
-                  <span class="activity-title">${escapeHtml(item.title)}</span>
-                  <span class="activity-sub">${escapeHtml(item.sub)}</span>
-                </div>
-              </div>
-            `;
-          }
-        }).join('');
-      }
 
       function escapeHtml(str) {
         const div = document.createElement('div');
         div.textContent = str == null ? '' : String(str);
         return div.innerHTML;
+      }
+
+      function renderActivity(transactions, notifications) {
+        const items = [];
+        (transactions || []).forEach(tx => {
+          items.push({ kind: 'transaction', title: tx.description || tx.type || 'Transaction',
+            sub: tx.date, amount: tx.amount, positive: tx.amount > 0 });
+        });
+        (notifications || []).forEach(n => {
+          items.push({ kind: 'notification', title: n.title, sub: n.date, ntype: n.type || 'info' });
+        });
+        if (!items.length) {
+          activityCard.innerHTML = '<div class="activity-empty">No recent activity yet.</div>';
+          return;
+        }
+        const ordered = [
+          ...items.filter(i => i.kind === 'transaction'),
+          ...items.filter(i => i.kind === 'notification')
+        ].slice(0, 6);
+        activityCard.innerHTML = ordered.map(item => {
+          if (item.kind === 'transaction') {
+            const pos = item.positive;
+            return `<div class="activity-row">
+              <div class="activity-icon ${pos ? 'credit' : 'debit'}">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${pos ? ICONS.credit : ICONS.debit}</svg>
+              </div>
+              <div class="activity-body">
+                <span class="activity-title">${escapeHtml(item.title)}</span>
+                <span class="activity-sub">${escapeHtml(item.sub)}</span>
+              </div>
+              <span class="activity-amount ${pos ? 'positive' : 'negative'}">${(pos ? '+' : '') + formatNaira(Math.abs(item.amount))}</span>
+            </div>`;
+          } else {
+            const ntype = item.ntype === 'success' ? 'notif-success' : item.ntype === 'warning' ? 'notif-warning' : 'notif-info';
+            const icon = item.ntype === 'success' ? ICONS.success : item.ntype === 'warning' ? ICONS.warning : ICONS.info;
+            return `<div class="activity-row">
+              <div class="activity-icon ${ntype}">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+              </div>
+              <div class="activity-body">
+                <span class="activity-title">${escapeHtml(item.title)}</span>
+                <span class="activity-sub">${escapeHtml(item.sub)}</span>
+              </div>
+            </div>`;
+          }
+        }).join('');
       }
 
       async function refreshWalletStatus() {
@@ -950,12 +885,11 @@
             setBalance(data.balance);
             renderActivity(data.transactions, data.notifications);
           }
-        } catch (e) {
-          // silent fail — initial server-rendered data already shown
-        }
+        } catch (e) { /* silent */ }
       }
 
-      async function verifyPayment(reference) {
+      /* ── KEY FIX: verify payment and handle result ── */
+      async function verifyPayment(reference, silent) {
         try {
           const res = await fetch('/api/wallet/verify', {
             method: 'POST',
@@ -964,33 +898,58 @@
           });
           const result = await res.json();
           if (result.success) {
+            // Clear stored pending reference on success
+            try { sessionStorage.removeItem(PENDING_REF_KEY); } catch(e){}
             showToast('Wallet funded successfully!', 'success');
-            if (typeof result.balance === 'number') {
-              setBalance(result.balance);
-            }
+            if (typeof result.balance === 'number') setBalance(result.balance);
             refreshWalletStatus();
           } else {
-            showToast(result.message || 'Could not confirm payment yet.', 'error');
+            if (!silent) showToast(result.message || 'Could not confirm payment.', 'error');
           }
         } catch (e) {
-          showToast('Network error while confirming payment.', 'error');
+          if (!silent) showToast('Network error while confirming payment.', 'error');
         }
       }
 
+      /* ── KEY FIX: check-pending endpoint (catches bank transfer / OPAY) ── */
+      async function checkPendingPayment(referenceHint) {
+        pendingBanner.classList.add('visible');
+        try {
+          const body = { telegram_id: TELEGRAM_ID };
+          if (referenceHint) body.reference = referenceHint;
+
+          const res = await fetch('/api/wallet/check-pending', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          const result = await res.json();
+
+          pendingBanner.classList.remove('visible');
+
+          if (result.credited) {
+            try { sessionStorage.removeItem(PENDING_REF_KEY); } catch(e){}
+            showToast('Wallet funded successfully!', 'success');
+            if (typeof result.balance === 'number') setBalance(result.balance);
+            refreshWalletStatus();
+          }
+          // If not credited, just silently update balance from API
+          else {
+            refreshWalletStatus();
+          }
+        } catch (e) {
+          pendingBanner.classList.remove('visible');
+          refreshWalletStatus();
+        }
+      }
+
+      /* ── START PAYMENT ── */
       async function startPayment() {
         if (isSubmitting) return;
-
         const raw = parseFloat(amountInput.value);
         const amount = isNaN(raw) || raw <= 0 ? 0 : raw;
-        if (amount < 100) {
-          showToast('Minimum funding amount is ₦100.', 'error');
-          return;
-        }
-
-        if (!PAYSTACK_PUBLIC_KEY) {
-          showToast('Payments are not set up yet. Please try again later.', 'error');
-          return;
-        }
+        if (amount < 100) { showToast('Minimum funding amount is ₦100.', 'error'); return; }
+        if (!PAYSTACK_PUBLIC_KEY) { showToast('Payments are not set up yet.', 'error'); return; }
 
         isSubmitting = true;
         submitBtn.classList.add('loading');
@@ -1009,16 +968,30 @@
             return;
           }
 
+          // ── KEY FIX: store reference BEFORE opening popup
+          // So even if they close the app, we can re-check on next open
+          try { sessionStorage.setItem(PENDING_REF_KEY, result.reference); } catch(e){}
+
           const handler = PaystackPop.setup({
             key: PAYSTACK_PUBLIC_KEY,
             email: result.email,
             amount: Math.round(result.total * 100),
             ref: result.reference,
             currency: 'NGN',
+
+            // ── KEY FIX: onClose now checks for payment instead of error toast
+            // Bank transfer & OPAY users land here — we must verify, not give up
             onClose: function () {
-              showToast('Payment window closed.', 'error');
+              showToast('Checking payment status…', 'warning');
+              // Small delay to let Paystack process on their end
+              setTimeout(() => {
+                checkPendingPayment(result.reference);
+              }, 2000);
             },
+
+            // Card payments that complete inline come here
             callback: function (response) {
+              try { sessionStorage.removeItem(PENDING_REF_KEY); } catch(e){}
               verifyPayment(response.reference || result.reference);
             }
           });
@@ -1033,35 +1006,71 @@
         }
       }
 
-      submitBtn.addEventListener('click', () => {
-        if (submitBtn.disabled) return;
-        startPayment();
-      });
+      submitBtn.addEventListener('click', () => { if (!submitBtn.disabled) startPayment(); });
 
-      // If we just came back from a Paystack redirect callback with a reference,
-      // verify it immediately.
-      const urlParams = new URLSearchParams(window.location.search);
-      const refFromUrl = urlParams.get('ref');
-      if (refFromUrl) {
-        verifyPayment(refFromUrl);
+      /* ── ON PAGE LOAD: check for pending payments ──
+         This is the main recovery path for users who:
+         - Left the app during bank transfer
+         - Re-launched the Telegram bot
+         - Lost session / had to re-open
+      */
+      function runStartupChecks() {
+        if (pendingCheckDone) return;
+        pendingCheckDone = true;
+
+        // Priority 1: ref in URL (came back from Paystack redirect)
+        const urlParams = new URLSearchParams(window.location.search);
+        const refFromUrl = urlParams.get('ref');
+
+        // Priority 2: ref we stored in sessionStorage before opening popup
+        let refFromSession = null;
+        try { refFromSession = sessionStorage.getItem(PENDING_REF_KEY); } catch(e){}
+
+        const referenceHint = refFromUrl || refFromSession || null;
+
+        // Always run check-pending on load if there's a hint OR if balance is 0
+        // (balance 0 + user has been here before = likely unpaid)
+        const currentBalance = parseFloat(
+          (balanceWhole.textContent || '0').replace(/,/g, '') + 
+          (balanceDecimals.textContent || '.00')
+        );
+
+        if (referenceHint || currentBalance === 0) {
+          checkPendingPayment(referenceHint);
+        } else {
+          // No pending reference, just refresh from API
+          refreshWalletStatus();
+        }
       }
 
-      // Render server-provided activity immediately, then refresh from API
+      /* ── VISIBILITY CHANGE: refresh when user tabs back / returns from bank app ── */
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          // If there's a stored pending ref, check it when they come back
+          let ref = null;
+          try { ref = sessionStorage.getItem(PENDING_REF_KEY); } catch(e){}
+          if (ref) {
+            checkPendingPayment(ref);
+          } else {
+            refreshWalletStatus();
+          }
+        }
+      });
+
+      /* ── INIT ── */
       renderActivity(
         {{ recent_transactions | tojson }},
         {{ recent_notifications | tojson }}
       );
       setBalance({{ user.balance | tojson }});
-
       updateSummary();
-      refreshWalletStatus();
+
+      // Run startup checks after a short delay to let page render
+      setTimeout(runStartupChecks, 800);
     })();
 
-    /* ── BACK BUTTON ── */
     document.getElementById('backBtn').addEventListener('click', () => {
-      if (window.history.length > 1) {
-        window.history.back();
-      }
+      if (window.history.length > 1) window.history.back();
     });
   </script>
 </body>
