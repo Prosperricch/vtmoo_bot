@@ -8,15 +8,26 @@
 
   /* Summary Cards */
   .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
-  .summary-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 14px; padding: 20px 18px; }
+  .summary-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 14px; padding: 20px 18px; transition: box-shadow .2s; }
+  .summary-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
   .summary-card .s-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
   .summary-card .s-value { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 28px; color: #0a0a0a; line-height: 1; }
   .summary-card .s-value.accent { color: #f59e0b; }
   .summary-card .s-value.green  { color: #22c55e; }
+  .summary-card .s-sub { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; color: #bbb; margin-top: 4px; }
+
+  /* Status indicator on header card */
+  .prog-status-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .prog-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .prog-status-dot.open   { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.2); }
+  .prog-status-dot.closed { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.2); }
+  .prog-status-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .prog-status-label.open   { color: #22c55e; }
+  .prog-status-label.closed { color: #ef4444; }
 
   /* Header Buttons */
   .perks-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
-  .btn-base { font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 700; border: none; border-radius: 10px; padding: 10px 18px; cursor: pointer; transition: opacity .15s, transform .1s; }
+  .btn-base { font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 700; border: none; border-radius: 10px; padding: 10px 18px; cursor: pointer; transition: opacity .15s, transform .1s; display: inline-flex; align-items: center; gap: 6px; }
   .btn-base:active { transform: scale(.97); }
   .btn-primary   { background: #0a0a0a; color: #fff; }
   .btn-secondary { background: #f4f4f2; color: #0a0a0a; }
@@ -25,10 +36,11 @@
   .btn-warning   { background: #f59e0b; color: #fff; }
   .btn-sm        { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
   .btn-base:hover { opacity: .85; }
+  .btn-base:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
   /* Section card */
   .section-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-  .section-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 16px; color: #0a0a0a; margin: 0 0 18px; display: flex; align-items: center; gap: 8px; }
+  .section-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 16px; color: #0a0a0a; margin: 0 0 18px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .section-title span.badge { font-size: 11px; font-weight: 700; background: #f59e0b; color: #fff; border-radius: 20px; padding: 2px 9px; }
   .section-title span.badge.green { background: #22c55e; }
 
@@ -50,7 +62,7 @@
   /* Table */
   .perks-table-wrap { overflow-x: auto; }
   .perks-table { width: 100%; border-collapse: collapse; font-family: 'Barlow', sans-serif; font-size: 13px; }
-  .perks-table th { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .06em; padding: 10px 12px; text-align: left; border-bottom: 1.5px solid #f0f0f0; }
+  .perks-table th { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .06em; padding: 10px 12px; text-align: left; border-bottom: 1.5px solid #f0f0f0; white-space: nowrap; }
   .perks-table td { padding: 12px; border-bottom: 1px solid #f8f8f8; color: #1a1a1a; vertical-align: middle; }
   .perks-table tr:last-child td { border-bottom: none; }
   .perks-table tr:hover td { background: #fafafa; }
@@ -69,7 +81,7 @@
   .search-bar:focus { border-color: #0a0a0a; }
 
   /* Bulk bar */
-  .bulk-bar { display: none; align-items: center; gap: 10px; background: #0a0a0a; color: #fff; border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600; }
+  .bulk-bar { display: none; align-items: center; gap: 10px; background: #0a0a0a; color: #fff; border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600; flex-wrap: wrap; }
   .bulk-bar.visible { display: flex; }
   .bulk-bar .bulk-count { margin-right: auto; }
 
@@ -83,27 +95,27 @@
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal-box { background: #fff; border-radius: 18px; padding: 28px; width: 420px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.18); }
-  .modal-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; margin: 0 0 20px; }
-  .modal-row   { margin-bottom: 12px; }
+  .modal-title   { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; margin: 0 0 20px; }
+  .modal-row     { margin-bottom: 12px; }
   .modal-row-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
   .modal-row-val   { font-family: 'Barlow', sans-serif; font-size: 14px; font-weight: 600; color: #0a0a0a; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
   .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 22px; cursor: pointer; color: #666; }
 
   /* Toast */
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0a0a0a; color: #fff; font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600; padding: 12px 22px; border-radius: 30px; z-index: 2000; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0a0a0a; color: #fff; font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600; padding: 12px 22px; border-radius: 30px; z-index: 2000; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; }
 
-  .reject-reason-box { margin-top: 10px; display: none; }
+  .reject-reason-box { margin-top: 10px; }
   .reject-reason-box textarea { width: 100%; font-family: 'Barlow', sans-serif; font-size: 13px; border: 1.5px solid #e5e5e5; border-radius: 10px; padding: 9px 12px; box-sizing: border-box; resize: vertical; min-height: 70px; outline: none; }
+
+  .settings-save-row { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
+  .settings-saved-note { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; color: #22c55e; display: none; }
 
   @media(max-width: 768px) {
     .summary-grid { grid-template-columns: 1fr 1fr; }
     .settings-grid { grid-template-columns: 1fr; }
     .add-member-form { grid-template-columns: 1fr; }
-  }
-  @media(max-width: 480px) {
-    .summary-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 
@@ -126,7 +138,7 @@
     <button class="modal-close" onclick="closeModal('removeModal')">×</button>
     <div class="modal-title">Remove Member?</div>
     <p style="font-family:'Barlow',sans-serif;font-size:14px;color:#555;margin:0 0 18px">
-      <strong id="removeName"></strong> will lose student pricing. Their account remains.
+      <strong id="removeName"></strong> will lose student pricing. Their account remains active.
     </p>
     <div class="modal-actions">
       <button class="btn-base btn-secondary" onclick="closeModal('removeModal')">Cancel</button>
@@ -138,22 +150,29 @@
 <!-- PAGE CONTENT -->
 <div class="perks-header">
   <h1>🎓 Student Perks</h1>
-  <p>Manage student memberships and applications.</p>
+  <p>Manage student memberships, applications, and program settings.</p>
 </div>
 
 <!-- SUMMARY CARDS -->
 <div class="summary-grid">
   <div class="summary-card">
-    <div class="s-label">Total Spots</div>
-    <div class="s-value" id="cardTotalSpots">—</div>
+    <div class="s-label">Program Status</div>
+    <div id="cardStatus">
+      <div class="prog-status-row">
+        <div class="prog-status-dot" id="statusDot"></div>
+        <span class="prog-status-label" id="statusLabel">Loading…</span>
+      </div>
+    </div>
+    <div class="s-sub" id="cardStatusSub"></div>
   </div>
   <div class="summary-card">
     <div class="s-label">Active Members</div>
     <div class="s-value green" id="cardActiveMembers">—</div>
+    <div class="s-sub" id="cardSpotsRemaining"></div>
   </div>
   <div class="summary-card">
-    <div class="s-label">Spots Remaining</div>
-    <div class="s-value" id="cardSpotsRemaining">—</div>
+    <div class="s-label">Total Spots</div>
+    <div class="s-value" id="cardTotalSpots">—</div>
   </div>
   <div class="summary-card">
     <div class="s-label">Pending Applications</div>
@@ -163,8 +182,8 @@
 
 <!-- QUICK ACTIONS -->
 <div class="perks-actions">
-  <button class="btn-base btn-success" onclick="openAppSection()">Open Applications</button>
-  <button class="btn-base btn-danger"  onclick="closeAppSection()">Close Applications</button>
+  <button class="btn-base btn-success" id="btnOpenApps" onclick="quickOpenApps()">🟢 Open Applications</button>
+  <button class="btn-base btn-danger"  id="btnCloseApps" onclick="quickCloseApps()">🔴 Close Applications</button>
   <button class="btn-base btn-primary" onclick="scrollToSection('addMemberSection')">+ Add Member</button>
 </div>
 
@@ -198,12 +217,13 @@
       <div class="setting-label">Allow Applications</div>
       <div class="checkbox-row">
         <input type="checkbox" id="chkAllowApps">
-        <label for="chkAllowApps">Yes, accept applications</label>
+        <label for="chkAllowApps">Yes, accept new applications</label>
       </div>
     </div>
   </div>
-  <div style="margin-top:20px">
+  <div class="settings-save-row">
     <button class="btn-base btn-primary" onclick="saveSettings()">Save Settings</button>
+    <span class="settings-saved-note" id="savedNote">✓ Saved</span>
   </div>
 </div>
 
@@ -216,14 +236,14 @@
 
   <div class="bulk-bar" id="appBulkBar">
     <span class="bulk-count"><span id="appSelectedCount">0</span> selected</span>
-    <button class="btn-base btn-success btn-sm" onclick="bulkApprove()">✅ Approve Selected</button>
-    <button class="btn-base btn-danger btn-sm"  onclick="bulkReject()">❌ Reject Selected</button>
+    <button class="btn-base btn-success btn-sm" onclick="bulkApprove()">✅ Approve</button>
+    <button class="btn-base btn-danger btn-sm"  onclick="bulkReject()">❌ Reject</button>
     <button class="btn-base btn-secondary btn-sm" onclick="clearSelection()">Clear</button>
   </div>
 
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
-    <input class="search-bar" style="margin-bottom:0" id="appSearch" type="text" placeholder="Search by name or school…" oninput="filterApplications()">
-    <button class="btn-base btn-success" onclick="bulkApproveAll()" style="white-space:nowrap">✅ Approve All Pending</button>
+    <input class="search-bar" style="margin-bottom:0;flex:1;min-width:180px" id="appSearch" type="text" placeholder="Search by name or school…" oninput="filterApplications()">
+    <button class="btn-base btn-success btn-sm" onclick="bulkApproveAll()" style="white-space:nowrap">✅ Approve All Pending</button>
   </div>
 
   <div class="perks-table-wrap">
@@ -253,7 +273,7 @@
     👥 Active Members
     <span class="badge green" id="memberBadge">0 Members</span>
   </div>
-  <input class="search-bar" id="memberSearch" type="text" placeholder="Search members…" oninput="filterMembers()">
+  <input class="search-bar" id="memberSearch" type="text" placeholder="Search members by name, username, or school…" oninput="filterMembers()">
   <div class="perks-table-wrap">
     <table class="perks-table" id="membersTable">
       <thead>
@@ -283,7 +303,7 @@
     </div>
     <div class="setting-row">
       <div class="setting-label">School</div>
-      <input class="setting-input" type="text" id="addSchool" placeholder="e.g. UNEX">
+      <input class="setting-input" type="text" id="addSchool" placeholder="e.g. UNILAG">
     </div>
     <div class="setting-row">
       <div class="setting-label">Department (Optional)</div>
@@ -305,9 +325,8 @@
 ═══════════════════════════════════════════════ */
 let allApplications = [];
 let allMembers      = [];
-let perksSettings   = { applications_open: true, total_spots: 40, show_spots: true, allow_applications: true };
+let perksSettings   = { applications_open: true, total_spots: 40, show_spots: true, allow_applications: true, active_members: 0, spots_remaining: 40, pending_apps: 0 };
 let selectedAppIds  = new Set();
-let pendingRemoveId = null;
 
 /* ═══════════════════════════════════════════════
    INIT
@@ -321,11 +340,13 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ═══════════════════════════════════════════════
    TOAST
 ═══════════════════════════════════════════════ */
+let toastTimer = null;
 function showToast(msg, duration = 2800) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
 }
 
 /* ═══════════════════════════════════════════════
@@ -349,10 +370,11 @@ async function loadSettings() {
     const r = await fetch('/admin/api/perks/settings');
     const d = await r.json();
     if (d.success && d.settings) {
-      perksSettings = d.settings;
+      perksSettings = { ...perksSettings, ...d.settings };
       applySettingsToUI(perksSettings);
+      updateSummaryCards();
     }
-  } catch { /* silently skip if not yet created */ }
+  } catch (e) { console.error('loadSettings:', e); }
 }
 
 function applySettingsToUI(s) {
@@ -376,40 +398,97 @@ async function saveSettings() {
   });
   const d = await r.json();
   if (d.success) {
-    perksSettings = payload;
-    showToast('✅ Settings saved.');
+    perksSettings = { ...perksSettings, ...d.settings };
+    showToast('✅ Settings saved and applied.');
+    // Flash the saved note
+    const note = document.getElementById('savedNote');
+    note.style.display = 'inline';
+    setTimeout(() => { note.style.display = 'none'; }, 3000);
     updateSummaryCards();
   } else {
     showToast('❌ ' + (d.message || 'Failed to save.'));
   }
 }
 
-function openAppSection()  {
-  document.getElementById('statusOpen').checked = true;
+/**
+ * Quick-action: Open applications — persists to DB immediately.
+ */
+async function quickOpenApps() {
+  document.getElementById('statusOpen').checked   = true;
+  document.getElementById('statusClosed').checked = false;
   document.getElementById('chkAllowApps').checked = true;
-  showToast('Applications set to Open — remember to Save Settings.');
+  const payload = {
+    applications_open:  true,
+    total_spots:        parseInt(document.getElementById('inputTotalSpots').value) || perksSettings.total_spots,
+    show_spots:         document.getElementById('chkShowSpots').checked,
+    allow_applications: true,
+  };
+  const r = await fetch('/admin/api/perks/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  if (d.success) {
+    perksSettings = { ...perksSettings, ...d.settings };
+    showToast('🟢 Applications are now OPEN — users can apply.');
+    updateSummaryCards();
+  } else {
+    showToast('❌ ' + (d.message || 'Could not open applications.'));
+  }
 }
-function closeAppSection() {
+
+/**
+ * Quick-action: Close applications — persists to DB immediately.
+ */
+async function quickCloseApps() {
+  document.getElementById('statusOpen').checked   = false;
   document.getElementById('statusClosed').checked = true;
   document.getElementById('chkAllowApps').checked = false;
-  showToast('Applications set to Closed — remember to Save Settings.');
+  const payload = {
+    applications_open:  false,
+    total_spots:        parseInt(document.getElementById('inputTotalSpots').value) || perksSettings.total_spots,
+    show_spots:         document.getElementById('chkShowSpots').checked,
+    allow_applications: false,
+  };
+  const r = await fetch('/admin/api/perks/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  if (d.success) {
+    perksSettings = { ...perksSettings, ...d.settings };
+    showToast('🔴 Applications are now CLOSED — users cannot apply.');
+    updateSummaryCards();
+  } else {
+    showToast('❌ ' + (d.message || 'Could not close applications.'));
+  }
 }
 
 /* ═══════════════════════════════════════════════
    SUMMARY CARDS
 ═══════════════════════════════════════════════ */
 function updateSummaryCards() {
-  const total    = perksSettings.total_spots || 0;
-  const members  = allMembers.filter(u => u.user_type === 'student' && !u.pricing_suspended).length;
-  const remaining = Math.max(0, total - members);
-  const pending  = allApplications.filter(a => a.status === 'pending').length;
+  const isOpen     = perksSettings.applications_open && perksSettings.allow_applications;
+  const total      = perksSettings.total_spots || 0;
+  const members    = perksSettings.active_members ?? allMembers.filter(u => u.user_type === 'student').length;
+  const remaining  = perksSettings.spots_remaining ?? Math.max(0, total - members);
+  const pending    = perksSettings.pending_apps   ?? allApplications.filter(a => a.status === 'pending').length;
 
-  document.getElementById('cardTotalSpots').textContent    = total;
+  // Status card
+  const dot   = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  const sub   = document.getElementById('cardStatusSub');
+  dot.className   = `prog-status-dot ${isOpen ? 'open' : 'closed'}`;
+  label.className = `prog-status-label ${isOpen ? 'open' : 'closed'}`;
+  label.textContent = isOpen ? 'Open' : 'Closed';
+  sub.textContent   = isOpen ? 'Accepting applications' : 'Not accepting applications';
+
   document.getElementById('cardActiveMembers').textContent = members;
-  document.getElementById('cardSpotsRemaining').textContent = remaining;
-  document.getElementById('cardPending').textContent       = pending;
-  document.getElementById('pendingBadge').textContent      = pending + ' Pending';
-  document.getElementById('memberBadge').textContent       = allMembers.filter(u=>u.user_type==='student').length + ' Members';
+  document.getElementById('cardSpotsRemaining').textContent = `${remaining} of ${total} spots left`;
+  document.getElementById('cardTotalSpots').textContent     = total;
+  document.getElementById('cardPending').textContent        = pending;
+  document.getElementById('pendingBadge').textContent       = pending + ' Pending';
+  document.getElementById('memberBadge').textContent        = members + ' Member' + (members !== 1 ? 's' : '');
 }
 
 /* ═══════════════════════════════════════════════
@@ -422,16 +501,19 @@ async function loadApplications() {
     if (d.success) {
       allApplications = d.applications;
       renderApplications(allApplications);
+      // Update pending count from live data
+      perksSettings.pending_apps = allApplications.filter(a => a.status === 'pending').length;
       updateSummaryCards();
     }
-  } catch (e) { console.error(e); }
+  } catch (e) { console.error('loadApplications:', e); }
 }
 
 function filterApplications() {
   const q = document.getElementById('appSearch').value.toLowerCase();
   renderApplications(allApplications.filter(a =>
     (a.user_name||'').toLowerCase().includes(q) ||
-    (a.school||'').toLowerCase().includes(q)
+    (a.school||'').toLowerCase().includes(q) ||
+    (a.username||'').toLowerCase().includes(q)
   ));
 }
 
@@ -444,18 +526,21 @@ function renderApplications(list) {
   tbody.innerHTML = list.map(a => `
     <tr data-id="${a.id}">
       <td>${a.status === 'pending' ? `<input type="checkbox" class="app-chk" value="${a.id}" onchange="onAppCheckChange()">` : ''}</td>
-      <td><strong>${escHtml(a.user_name || 'Unknown')}</strong><br><span style="font-size:11px;color:#999">@${escHtml(a.username||'—')}</span></td>
+      <td>
+        <strong>${escHtml(a.user_name || 'Unknown')}</strong><br>
+        <span style="font-size:11px;color:#999">@${escHtml(a.username||'—')}</span>
+      </td>
       <td>${escHtml(a.school||'—')}</td>
-      <td>${escHtml(a.matric_number||'—')}</td>
+      <td style="font-family:monospace;font-size:12px">${escHtml(a.matric_number||'—')}</td>
       <td>${escHtml(a.level||'—')}</td>
-      <td style="font-size:12px;color:#888">${relTime(a.created_at)}</td>
+      <td style="font-size:12px;color:#888;white-space:nowrap">${relTime(a.created_at)}</td>
       <td><span class="status-pill pill-${a.status}">${capitalize(a.status)}</span></td>
       <td>
         <div class="action-group">
           <button class="btn-base btn-secondary btn-sm" onclick="viewApplication(${a.id})">View</button>
           ${a.status === 'pending' ? `
             <button class="btn-base btn-success btn-sm" onclick="approveApp(${a.id})">Approve</button>
-            <button class="btn-base btn-danger btn-sm"  onclick="rejectApp(${a.id})">Reject</button>
+            <button class="btn-base btn-danger  btn-sm" onclick="rejectApp(${a.id})">Reject</button>
           ` : ''}
         </div>
       </td>
@@ -491,15 +576,15 @@ function viewApplication(id) {
     <div class="modal-row"><div class="modal-row-label">Name</div><div class="modal-row-val">${escHtml(a.user_name||'—')}</div></div>
     <div class="modal-row"><div class="modal-row-label">Username</div><div class="modal-row-val">@${escHtml(a.username||'—')}</div></div>
     <div class="modal-row"><div class="modal-row-label">School</div><div class="modal-row-val">${escHtml(a.school||'—')}</div></div>
-    <div class="modal-row"><div class="modal-row-label">Matric / ID</div><div class="modal-row-val">${escHtml(a.matric_number||'—')}</div></div>
+    <div class="modal-row"><div class="modal-row-label">Matric / ID</div><div class="modal-row-val" style="font-family:monospace">${escHtml(a.matric_number||'—')}</div></div>
     <div class="modal-row"><div class="modal-row-label">Level</div><div class="modal-row-val">${escHtml(a.level||'—')}</div></div>
     <div class="modal-row"><div class="modal-row-label">Applied</div><div class="modal-row-val">${relTime(a.created_at)}</div></div>
     <div class="modal-row"><div class="modal-row-label">Status</div><div class="modal-row-val"><span class="status-pill pill-${a.status}">${capitalize(a.status)}</span></div></div>
     ${a.rejection_reason ? `<div class="modal-row"><div class="modal-row-label">Rejection Reason</div><div class="modal-row-val" style="color:#ef4444">${escHtml(a.rejection_reason)}</div></div>` : ''}
     ${a.status === 'pending' ? `
-      <div class="reject-reason-box" id="rejectBox_${a.id}" style="display:block;margin-top:14px">
-        <div class="setting-label" style="margin-bottom:6px">Rejection Reason (optional)</div>
-        <textarea id="rejectReason_${a.id}" placeholder="Reason for rejection…"></textarea>
+      <div class="reject-reason-box" style="margin-top:14px">
+        <div class="setting-label" style="margin-bottom:6px">Rejection reason (optional)</div>
+        <textarea id="rejectReason_${a.id}" placeholder="Enter a reason if rejecting…"></textarea>
       </div>
     ` : ''}
   `;
@@ -519,10 +604,14 @@ async function approveApp(id, fromModal = false) {
   });
   const d = await r.json();
   if (d.success) {
-    showToast('✅ Application approved.');
+    showToast('✅ Application approved. User notified.');
     if (fromModal) closeModal('viewModal');
-    loadApplications(); loadMembers();
-  } else { showToast('❌ ' + (d.message || 'Failed.')); }
+    await loadApplications();
+    await loadMembers();
+    await loadSettings(); // refresh spot counts
+  } else {
+    showToast('❌ ' + (d.message || 'Failed.'));
+  }
 }
 
 async function rejectApp(id, fromModal = false) {
@@ -533,67 +622,83 @@ async function rejectApp(id, fromModal = false) {
   });
   const d = await r.json();
   if (d.success) {
-    showToast('Application rejected.');
+    showToast('Application rejected. User notified.');
     if (fromModal) closeModal('viewModal');
-    loadApplications();
-  } else { showToast('❌ ' + (d.message || 'Failed.')); }
+    await loadApplications();
+  } else {
+    showToast('❌ ' + (d.message || 'Failed.'));
+  }
 }
 
 async function bulkApprove() {
   if (!selectedAppIds.size) return;
-  const ids = [...selectedAppIds];
   const r = await fetch('/admin/api/perks/applications/bulk-approve', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ application_ids: ids })
+    body: JSON.stringify({ application_ids: [...selectedAppIds] })
   });
   const d = await r.json();
   if (d.success) {
-    showToast(`✅ ${d.approved} application(s) approved.`);
-    clearSelection(); loadApplications(); loadMembers();
+    showToast(`✅ ${d.approved} approved${d.skipped ? ', ' + d.skipped + ' skipped (no spots).' : '.'}`);
+    clearSelection();
+    await loadApplications();
+    await loadMembers();
+    await loadSettings();
   } else { showToast('❌ ' + (d.message || 'Failed.')); }
 }
 
 async function bulkApproveAll() {
   const pending = allApplications.filter(a => a.status === 'pending').map(a => a.id);
-  if (!pending.length) { showToast('No pending applications.'); return; }
+  if (!pending.length) { showToast('No pending applications to approve.'); return; }
   const r = await fetch('/admin/api/perks/applications/bulk-approve', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ application_ids: pending })
   });
   const d = await r.json();
   if (d.success) {
-    showToast(`✅ All ${d.approved} pending application(s) approved.`);
-    loadApplications(); loadMembers();
+    showToast(`✅ ${d.approved} approved${d.skipped ? ', ' + d.skipped + ' skipped (no spots).' : '.'}`);
+    await loadApplications();
+    await loadMembers();
+    await loadSettings();
   } else { showToast('❌ ' + (d.message || 'Failed.')); }
 }
 
 async function bulkReject() {
   if (!selectedAppIds.size) return;
-  const ids = [...selectedAppIds];
   const r = await fetch('/admin/api/perks/applications/bulk-reject', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ application_ids: ids, reason: '' })
+    body: JSON.stringify({ application_ids: [...selectedAppIds], reason: '' })
   });
   const d = await r.json();
   if (d.success) {
-    showToast(`${d.rejected} application(s) rejected.`);
-    clearSelection(); loadApplications();
+    showToast(`${d.rejected} application(s) rejected. Users notified.`);
+    clearSelection();
+    await loadApplications();
   } else { showToast('❌ ' + (d.message || 'Failed.')); }
 }
 
 /* ═══════════════════════════════════════════════
-   MEMBERS
+   MEMBERS  — sorted by created_at DESC so
+   the most-recently-added appears first.
+   "Remove" therefore removes the newest member.
 ═══════════════════════════════════════════════ */
 async function loadMembers() {
   try {
     const r = await fetch('/admin/api/users/list');
     const d = await r.json();
     if (d.success) {
-      allMembers = d.users.filter(u => u.user_type === 'student');
+      // Keep only students, sorted newest-first
+      allMembers = d.users
+        .filter(u => u.user_type === 'student')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
       renderMembers(allMembers);
+
+      // Update live member count in settings state
+      perksSettings.active_members  = allMembers.length;
+      perksSettings.spots_remaining  = Math.max(0, (perksSettings.total_spots || 0) - allMembers.length);
       updateSummaryCards();
     }
-  } catch (e) { console.error(e); }
+  } catch (e) { console.error('loadMembers:', e); }
 }
 
 function filterMembers() {
@@ -620,7 +725,7 @@ function renderMembers(list) {
         <span style="font-size:11px;color:#999">@${escHtml(u.username||'—')}</span>
       </td>
       <td>${escHtml(u.school||'—')}</td>
-      <td style="font-size:12px;color:#888">${u.created_at ? fmtDate(u.created_at) : '—'}</td>
+      <td style="font-size:12px;color:#888;white-space:nowrap">${u.created_at ? fmtDate(u.created_at) : '—'}</td>
       <td><span class="status-pill ${suspended ? 'pill-suspended' : 'pill-active'}">${suspended ? 'Suspended' : 'Active'}</span></td>
       <td>
         <div class="action-group">
@@ -642,7 +747,7 @@ async function suspendMember(userId) {
   });
   const d = await r.json();
   showToast(d.success ? '⚠️ Member suspended.' : '❌ ' + (d.message||'Failed.'));
-  if (d.success) loadMembers();
+  if (d.success) await loadMembers();
 }
 
 async function activateMember(userId) {
@@ -652,11 +757,10 @@ async function activateMember(userId) {
   });
   const d = await r.json();
   showToast(d.success ? '✅ Member reactivated.' : '❌ ' + (d.message||'Failed.'));
-  if (d.success) loadMembers();
+  if (d.success) await loadMembers();
 }
 
 function confirmRemove(userId, name) {
-  pendingRemoveId = userId;
   document.getElementById('removeName').textContent = name;
   document.getElementById('confirmRemoveBtn').onclick = () => removeMember(userId);
   openModal('removeModal');
@@ -670,7 +774,11 @@ async function removeMember(userId) {
   const d = await r.json();
   showToast(d.success ? '✅ Member removed from Student Perks.' : '❌ ' + (d.message||'Failed.'));
   closeModal('removeModal');
-  if (d.success) { loadMembers(); updateSummaryCards(); }
+  if (d.success) {
+    await loadMembers();
+    await loadSettings(); // Refresh spot counts
+    updateSummaryCards();
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -690,13 +798,17 @@ async function addMemberManually() {
   });
   const d = await r.json();
   if (d.success) {
-    showToast('✅ Member added to Student Perks.');
+    showToast('✅ ' + d.message);
     document.getElementById('addUsername').value = '';
     document.getElementById('addSchool').value   = '';
     document.getElementById('addDept').value     = '';
     document.getElementById('addLevel').value    = '';
-    loadMembers(); updateSummaryCards();
-  } else { showToast('❌ ' + (d.message || 'Failed.')); }
+    await loadMembers();
+    await loadSettings();
+    updateSummaryCards();
+  } else {
+    showToast('❌ ' + (d.message || 'Failed.'));
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -707,15 +819,15 @@ function escHtml(str) {
 }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 function fmtDate(iso) {
-  try { return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }); }
+  try { return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' }); }
   catch { return '—'; }
 }
 function relTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso), now = new Date(), s = (now - d) / 1000;
   if (s < 60) return 'Just now';
-  if (s < 3600) return Math.floor(s/60) + 'm ago';
-  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  if (s < 3600)  return Math.floor(s/60)    + 'm ago';
+  if (s < 86400) return Math.floor(s/3600)  + 'h ago';
   if (s < 604800) return Math.floor(s/86400) + 'd ago';
   return fmtDate(iso);
 }
