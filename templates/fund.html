@@ -10,6 +10,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@400;500&display=swap"
     rel="stylesheet" />
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <style>
     *,
     *::before,
@@ -198,10 +199,14 @@
       font-size: 13px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #555555;
+      color: #1a1a1a;
       margin: 0 0 14px;
       opacity: 0;
       animation: fadeUp 0.6s ease 0.2s forwards;
+    }
+
+    .section-head.spaced {
+      margin-top: 28px;
     }
 
     /* ── AMOUNT INPUT CARD ── */
@@ -392,16 +397,194 @@
       stroke: #ffffff;
     }
 
+    /* ── LOADING SPINNER ── */
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .fund-submit-btn.loading .btn-text,
+    .fund-submit-btn.loading svg {
+      display: none;
+    }
+    .fund-submit-btn.loading .spinner {
+      display: block;
+    }
+
     .paystack-badge {
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       margin-top: 14px;
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      font-weight: 500;
+      font-size: 12px;
+      letter-spacing: 0.04em;
       color: #999999;
       opacity: 0;
       animation: fadeUp 0.6s ease 0.5s forwards;
+    }
+    .paystack-badge svg {
+      width: 14px;
+      height: 14px;
+      stroke: #999999;
+      flex-shrink: 0;
+    }
+    .paystack-badge strong {
+      font-weight: 800;
+      color: #00C3F9;
+      letter-spacing: 0;
+    }
+
+    /* ── ACTIVITY LIST ── */
+    .activity-card {
+      border-radius: 20px;
+      padding: 8px 22px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.46s forwards;
+      margin-bottom: 24px;
+    }
+
+    .activity-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+    }
+
+    .activity-row + .activity-row {
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .activity-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .activity-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: #000000;
+      stroke-width: 2;
+    }
+
+    .activity-icon.credit {
+      background: rgba(0, 180, 90, 0.1);
+    }
+    .activity-icon.credit svg {
+      stroke: #009e4f;
+    }
+
+    .activity-icon.debit {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .activity-icon.notif-success svg { stroke: #009e4f; }
+    .activity-icon.notif-success { background: rgba(0, 180, 90, 0.1); }
+    .activity-icon.notif-info svg { stroke: #0066cc; }
+    .activity-icon.notif-info { background: rgba(0, 102, 204, 0.08); }
+    .activity-icon.notif-warning svg { stroke: #cc7a00; }
+    .activity-icon.notif-warning { background: rgba(204, 122, 0, 0.08); }
+
+    .activity-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .activity-title {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: #000000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .activity-sub {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 400;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: #999999;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .activity-amount {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .activity-amount.positive {
+      color: #009e4f;
+    }
+    .activity-amount.negative {
+      color: #000000;
+    }
+
+    .activity-empty {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      color: #aaaaaa;
+      text-align: center;
+      padding: 22px 0;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #000000;
+      color: #ffffff;
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      z-index: 1000;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success {
+      background: #000000;
+    }
+    .toast.error {
+      background: #cc0000;
     }
   </style>
 </head>
@@ -434,7 +617,9 @@
           <circle cx="12" cy="12" r="3" />
         </svg>
       </div>
-      <div class="balance-amount"><span class="balance-naira">₦</span>0<span class="balance-decimals">.00</span></div>
+      <div class="balance-amount" id="balanceAmount">
+        <span class="balance-naira">₦</span><span id="balanceWhole">0</span><span class="balance-decimals" id="balanceDecimals">.00</span>
+      </div>
       <div class="balance-sub">Available for VTU services</div>
     </div>
 
@@ -463,7 +648,7 @@
         <span id="sumAmount">₦0.00</span>
       </div>
       <div class="summary-row">
-        <span>Processing Fee (5%)</span>
+        <span>Processing Fee ({{ (fee_percent * 100) | round(0, 'common') | int }}%)</span>
         <span id="sumFee">₦0.00</span>
       </div>
       <div class="summary-row total">
@@ -478,12 +663,28 @@
         <rect x="2" y="5" width="20" height="14" rx="2" />
         <path d="M2 10h20" />
       </svg>
-      Fund Wallet with Paystack
+      <span class="btn-text">Fund Wallet with Paystack</span>
+      <div class="spinner"></div>
     </button>
 
-    <div class="paystack-badge">Secured by Paystack</div>
+    <div class="paystack-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="10" rx="2" />
+        <path d="M7 11V7a5 5 0 0110 0v4" />
+      </svg>
+      Secured by <strong>Paystack</strong>
+    </div>
+
+    <!-- RECENT ACTIVITY -->
+    <div class="section-head spaced">Recent Activity</div>
+    <div class="activity-card" id="activityCard">
+      <!-- populated by JS -->
+    </div>
 
   </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
 
   <script>
     /* ── COW PATTERN BG ── */
@@ -586,7 +787,9 @@
 
     /* ── FUND WALLET LOGIC ── */
     (function () {
-      const FEE_PERCENT = 0.05; // ₦50 charge expressed as 5% (e.g. ₦1,000 funding → ₦50 fee)
+      const TELEGRAM_ID = {{ user.telegram_id | tojson }};
+      const PAYSTACK_PUBLIC_KEY = {{ paystack_public_key | tojson }};
+      const FEE_PERCENT = {{ fee_percent | tojson }};
 
       const amountInput = document.getElementById('amountInput');
       const chips = document.querySelectorAll('.amount-chip');
@@ -594,9 +797,32 @@
       const sumFee = document.getElementById('sumFee');
       const sumTotal = document.getElementById('sumTotal');
       const submitBtn = document.getElementById('fundSubmitBtn');
+      const toast = document.getElementById('toast');
+      const balanceWhole = document.getElementById('balanceWhole');
+      const balanceDecimals = document.getElementById('balanceDecimals');
+      const activityCard = document.getElementById('activityCard');
+
+      let isSubmitting = false;
 
       function formatNaira(value) {
         return '₦' + value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      function setBalance(balance) {
+        const parts = (Math.round(balance * 100) / 100).toFixed(2).split('.');
+        balanceWhole.textContent = Number(parts[0]).toLocaleString('en-NG');
+        balanceDecimals.textContent = '.' + parts[1];
+      }
+
+      function showToast(message, type) {
+        toast.textContent = message;
+        toast.className = 'toast ' + (type || 'success');
+        requestAnimationFrame(() => {
+          toast.classList.add('show');
+        });
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 4000);
       }
 
       function updateSummary() {
@@ -609,7 +835,7 @@
         sumFee.textContent = formatNaira(fee);
         sumTotal.textContent = formatNaira(total);
 
-        submitBtn.disabled = amount <= 0;
+        submitBtn.disabled = amount <= 0 || isSubmitting;
 
         chips.forEach(chip => {
           chip.classList.toggle('selected', parseFloat(chip.dataset.amount) === amount && amount > 0);
@@ -625,13 +851,210 @@
         });
       });
 
+      /* ── ACTIVITY RENDERING ── */
+      const ICONS = {
+        credit: '<path d="M12 5v14M5 12l7-7 7 7" />',
+        debit: '<path d="M12 19V5M5 12l7 7 7-7" />',
+        success: '<path d="M20 6L9 17l-5-5" />',
+        info: '<circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />',
+        warning: '<path d="M12 9v4M12 17h.01M10.3 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.7 3.86a2 2 0 00-3.4 0z" />'
+      };
+
+      function renderActivity(transactions, notifications) {
+        const items = [];
+
+        (transactions || []).forEach(tx => {
+          items.push({
+            kind: 'transaction',
+            sortKey: tx.date,
+            title: tx.description || (tx.type || 'Transaction'),
+            sub: tx.date,
+            amount: tx.amount,
+            positive: tx.amount > 0
+          });
+        });
+
+        (notifications || []).forEach(n => {
+          items.push({
+            kind: 'notification',
+            sortKey: n.date,
+            title: n.title,
+            sub: n.date,
+            ntype: n.type || 'info'
+          });
+        });
+
+        if (!items.length) {
+          activityCard.innerHTML = '<div class="activity-empty">No recent activity yet.</div>';
+          return;
+        }
+
+        // Show transactions first, then notifications (both already most-recent-first)
+        const ordered = [
+          ...items.filter(i => i.kind === 'transaction'),
+          ...items.filter(i => i.kind === 'notification')
+        ].slice(0, 6);
+
+        activityCard.innerHTML = ordered.map(item => {
+          if (item.kind === 'transaction') {
+            const isPositive = item.positive;
+            const iconClass = isPositive ? 'credit' : 'debit';
+            const iconSvg = isPositive ? ICONS.credit : ICONS.debit;
+            const amountClass = isPositive ? 'positive' : 'negative';
+            const amountText = (isPositive ? '+' : '') + formatNaira(Math.abs(item.amount));
+            return `
+              <div class="activity-row">
+                <div class="activity-icon ${iconClass}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
+                </div>
+                <div class="activity-body">
+                  <span class="activity-title">${escapeHtml(item.title)}</span>
+                  <span class="activity-sub">${escapeHtml(item.sub)}</span>
+                </div>
+                <span class="activity-amount ${amountClass}">${amountText}</span>
+              </div>
+            `;
+          } else {
+            const ntype = item.ntype === 'success' ? 'notif-success'
+              : item.ntype === 'warning' ? 'notif-warning'
+              : 'notif-info';
+            const iconSvg = item.ntype === 'success' ? ICONS.success
+              : item.ntype === 'warning' ? ICONS.warning
+              : ICONS.info;
+            return `
+              <div class="activity-row">
+                <div class="activity-icon ${ntype}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
+                </div>
+                <div class="activity-body">
+                  <span class="activity-title">${escapeHtml(item.title)}</span>
+                  <span class="activity-sub">${escapeHtml(item.sub)}</span>
+                </div>
+              </div>
+            `;
+          }
+        }).join('');
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+      }
+
+      async function refreshWalletStatus() {
+        try {
+          const res = await fetch(`/api/wallet/status?telegram_id=${TELEGRAM_ID}`);
+          const data = await res.json();
+          if (data.success) {
+            setBalance(data.balance);
+            renderActivity(data.transactions, data.notifications);
+          }
+        } catch (e) {
+          // silent fail — initial server-rendered data already shown
+        }
+      }
+
+      async function verifyPayment(reference) {
+        try {
+          const res = await fetch('/api/wallet/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference })
+          });
+          const result = await res.json();
+          if (result.success) {
+            showToast('Wallet funded successfully!', 'success');
+            if (typeof result.balance === 'number') {
+              setBalance(result.balance);
+            }
+            refreshWalletStatus();
+          } else {
+            showToast(result.message || 'Could not confirm payment yet.', 'error');
+          }
+        } catch (e) {
+          showToast('Network error while confirming payment.', 'error');
+        }
+      }
+
+      async function startPayment() {
+        if (isSubmitting) return;
+
+        const raw = parseFloat(amountInput.value);
+        const amount = isNaN(raw) || raw <= 0 ? 0 : raw;
+        if (amount < 100) {
+          showToast('Minimum funding amount is ₦100.', 'error');
+          return;
+        }
+
+        if (!PAYSTACK_PUBLIC_KEY) {
+          showToast('Payments are not set up yet. Please try again later.', 'error');
+          return;
+        }
+
+        isSubmitting = true;
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+
+        try {
+          const res = await fetch('/api/wallet/initialize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: TELEGRAM_ID, amount })
+          });
+          const result = await res.json();
+
+          if (!result.success) {
+            showToast(result.message || 'Could not start payment.', 'error');
+            return;
+          }
+
+          const handler = PaystackPop.setup({
+            key: PAYSTACK_PUBLIC_KEY,
+            email: result.email,
+            amount: Math.round(result.total * 100),
+            ref: result.reference,
+            currency: 'NGN',
+            onClose: function () {
+              showToast('Payment window closed.', 'error');
+            },
+            callback: function (response) {
+              verifyPayment(response.reference || result.reference);
+            }
+          });
+
+          handler.openIframe();
+        } catch (e) {
+          showToast('Network error. Please try again.', 'error');
+        } finally {
+          isSubmitting = false;
+          submitBtn.classList.remove('loading');
+          updateSummary();
+        }
+      }
+
       submitBtn.addEventListener('click', () => {
         if (submitBtn.disabled) return;
-        // Hook Paystack integration here
-        alert('Redirecting to Paystack to pay ' + sumTotal.textContent + '...');
+        startPayment();
       });
 
+      // If we just came back from a Paystack redirect callback with a reference,
+      // verify it immediately.
+      const urlParams = new URLSearchParams(window.location.search);
+      const refFromUrl = urlParams.get('ref');
+      if (refFromUrl) {
+        verifyPayment(refFromUrl);
+      }
+
+      // Render server-provided activity immediately, then refresh from API
+      renderActivity(
+        {{ recent_transactions | tojson }},
+        {{ recent_notifications | tojson }}
+      );
+      setBalance({{ user.balance | tojson }});
+
       updateSummary();
+      refreshWalletStatus();
     })();
 
     /* ── BACK BUTTON ── */
