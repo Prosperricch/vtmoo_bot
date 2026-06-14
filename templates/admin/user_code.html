@@ -1,29 +1,923 @@
 {% extends "admin/base.html" %}
+{% block extra_head %}
+<style>
+  /* ── PAGE TOKENS ── */
+  :root {
+    --surface: #ffffff;
+    --surface-2: #f4f4f2;
+    --border: rgba(0,0,0,0.07);
+    --border-strong: rgba(0,0,0,0.14);
+    --text: #0a0a0a;
+    --text-muted: #888888;
+    --text-dim: #bbbbbb;
+    --green: #1ca64c;
+    --green-bg: #eaf7ee;
+    --amber: #d97706;
+    --amber-bg: #fef3e2;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+  }
+
+  /* ── TOOLBAR ── */
+  .users-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 340px;
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    stroke: var(--text-muted);
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.18s;
+  }
+  .search-input:focus { border-color: #0a0a0a; }
+  .search-input::placeholder { color: var(--text-dim); }
+
+  .filter-select {
+    padding: 10px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.18s;
+  }
+  .filter-select:focus { border-color: #0a0a0a; }
+
+  .toolbar-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* ── SUMMARY PILLS ── */
+  .summary-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .summary-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .summary-pill .pill-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .summary-pill.all .pill-dot { background: #0a0a0a; }
+  .summary-pill.student .pill-dot { background: var(--blue); }
+  .summary-pill.regular .pill-dot { background: var(--text-muted); }
+  .summary-pill.suspended .pill-dot { background: var(--red); }
+
+  /* ── TABLE CARD ── */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .users-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .users-table thead tr {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .users-table th {
+    padding: 11px 16px;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .users-table th:last-child { text-align: right; }
+
+  .users-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.14s;
+  }
+  .users-table tbody tr:last-child { border-bottom: none; }
+  .users-table tbody tr:hover { background: #fafafa; }
+  .users-table td {
+    padding: 14px 16px;
+    vertical-align: middle;
+  }
+
+  /* user cell */
+  .user-cell { display: flex; align-items: center; gap: 12px; }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 13px;
+    color: #0a0a0a; flex-shrink: 0; text-transform: uppercase;
+  }
+  .user-name {
+    font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 14px;
+    color: var(--text); letter-spacing: -0.01em;
+  }
+  .user-handle {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    color: var(--text-muted); margin-top: 1px;
+  }
+
+  /* balance */
+  .balance-cell {
+    font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 14px;
+    color: var(--text); white-space: nowrap;
+  }
+  .balance-currency { color: var(--text-muted); font-weight: 500; font-size: 12px; }
+
+  /* badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px; border-radius: 100px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600; font-size: 11px; letter-spacing: 0.04em;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .badge svg { width: 10px; height: 10px; stroke: currentColor; }
+  .badge.student  { background: var(--blue-bg);  color: var(--blue); }
+  .badge.regular  { background: var(--surface-2); color: #555555; }
+  .badge.suspended{ background: var(--red-bg);   color: var(--red); }
+
+  /* school */
+  .school-cell {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 500; color: var(--text);
+    max-width: 160px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .school-none { color: var(--text-dim); font-style: italic; }
+
+  /* actions */
+  .actions-cell {
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 11px; border-radius: var(--radius-sm);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600; font-size: 12px; letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    cursor: pointer; transition: all 0.18s ease;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    background: none;
+  }
+  .action-btn svg { width: 13px; height: 13px; stroke: currentColor; flex-shrink: 0; }
+
+  .action-btn.type-toggle {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    color: #333333;
+  }
+  .action-btn.type-toggle:hover { background: #e8e8e6; }
+
+  .action-btn.suspend {
+    background: var(--amber-bg);
+    border-color: rgba(217,119,6,0.2);
+    color: var(--amber);
+  }
+  .action-btn.suspend:hover { background: #fde8bd; }
+
+  .action-btn.reinstate {
+    background: var(--green-bg);
+    border-color: rgba(28,166,76,0.2);
+    color: var(--green);
+  }
+  .action-btn.reinstate:hover { background: #d4f0de; }
+
+  .action-btn.revoke {
+    background: var(--red-bg);
+    border-color: rgba(220,38,38,0.2);
+    color: var(--red);
+  }
+  .action-btn.revoke:hover { background: #fee2e2; }
+
+  /* empty state */
+  .empty-state {
+    padding: 60px 24px; text-align: center;
+  }
+  .empty-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .empty-icon svg { width: 24px; height: 24px; stroke: #999999; }
+  .empty-title {
+    font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .empty-sub {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 13px;
+    color: var(--text-muted); line-height: 1.6;
+  }
+
+  /* pagination */
+  .pagination-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+    flex-wrap: wrap; gap: 10px;
+  }
+  .page-info {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    color: var(--text-muted);
+  }
+  .page-btns { display: flex; gap: 6px; }
+  .page-btn {
+    padding: 6px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 12px;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .page-btn:hover:not(:disabled) { background: #0a0a0a; color: #f5f5f5; border-color: #0a0a0a; }
+  .page-btn:disabled { opacity: 0.35; cursor: default; }
+
+  /* ── MODAL ── */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  .modal-backdrop.open {
+    opacity: 1; pointer-events: all;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 420px; width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+    transform: translateY(12px);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .modal-backdrop.open .modal { transform: translateY(0); }
+
+  .modal-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .modal-icon.warn  { background: var(--amber-bg); }
+  .modal-icon.danger{ background: var(--red-bg); }
+  .modal-icon.info  { background: var(--blue-bg); }
+  .modal-icon.ok    { background: var(--green-bg); }
+  .modal-icon svg { width: 22px; height: 22px; stroke: currentColor; }
+  .modal-icon.warn  svg { stroke: var(--amber); }
+  .modal-icon.danger svg { stroke: var(--red); }
+  .modal-icon.info  svg { stroke: var(--blue); }
+  .modal-icon.ok    svg { stroke: var(--green); }
+
+  .modal-title {
+    font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px;
+    letter-spacing: -0.01em; margin-bottom: 8px;
+  }
+  .modal-body {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 14px;
+    color: #444444; line-height: 1.65; margin-bottom: 24px;
+  }
+  .modal-body strong { color: var(--text); font-weight: 600; }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 10px 20px; border-radius: 10px;
+    font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 14px;
+    border: none; cursor: pointer; transition: all 0.18s;
+  }
+  .modal-btn.cancel {
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--border-strong);
+  }
+  .modal-btn.cancel:hover { background: #e8e8e6; }
+  .modal-btn.confirm-warn   { background: var(--amber); color: #fff; }
+  .modal-btn.confirm-danger { background: var(--red);   color: #fff; }
+  .modal-btn.confirm-info   { background: var(--blue);  color: #fff; }
+  .modal-btn.confirm-ok     { background: var(--green); color: #fff; }
+  .modal-btn.confirm-warn:hover   { background: #b45309; }
+  .modal-btn.confirm-danger:hover { background: #b91c1c; }
+  .modal-btn.confirm-info:hover   { background: #1d4ed8; }
+  .modal-btn.confirm-ok:hover     { background: #15803d; }
+
+  /* ── TOAST ── */
+  .toast-container {
+    position: fixed; bottom: 24px; right: 24px; z-index: 900;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    display: flex; align-items: center; gap: 10px;
+    background: #0a0a0a; color: #f5f5f5;
+    border-radius: 12px; padding: 12px 18px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    opacity: 0; transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    min-width: 220px;
+    pointer-events: all;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: var(--green); }
+  .toast.error   { background: var(--red); }
+  .toast.warn    { background: var(--amber); }
+  .toast svg { width: 16px; height: 16px; stroke: currentColor; flex-shrink: 0; }
+
+  /* ── SPINNER ── */
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.65s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* responsive */
+  @media (max-width: 768px) {
+    .users-table th:nth-child(4),
+    .users-table td:nth-child(4) { display: none; } /* hide school on mobile */
+    .action-btn span { display: none; }
+    .action-btn { padding: 7px 8px; }
+    .summary-row { gap: 6px; }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<style>
-  .placeholder-card {
-    background: #ffffff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px;
-    padding: 60px 32px; text-align: center;
-  }
-  .placeholder-icon {
-    width: 56px; height: 56px; border-radius: 14px; background: #f4f4f2;
-    display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
-  }
-  .placeholder-icon svg { width: 26px; height: 26px; stroke: #0a0a0a; }
-  .placeholder-title { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 18px; margin-bottom: 8px; }
-  .placeholder-sub { font-family: 'Barlow Condensed', sans-serif; font-weight: 400; font-size: 14px; color: #999999; max-width: 460px; margin: 0 auto; line-height: 1.6; }
-</style>
-
-<div class="placeholder-card">
-  <div class="placeholder-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
-    </svg>
+<!-- ── SUMMARY PILLS ── -->
+<div class="summary-row" id="summaryRow">
+  <div class="summary-pill all">
+    <span class="pill-dot"></span>
+    <span id="pillAll">— Total</span>
   </div>
-  <div class="placeholder-title">Add Users Code — Coming Next</div>
-  <div class="placeholder-sub">
-    Let me know what this feature should do and I'll build it out here.
+  <div class="summary-pill student">
+    <span class="pill-dot"></span>
+    <span id="pillStudent">— Students</span>
+  </div>
+  <div class="summary-pill regular">
+    <span class="pill-dot"></span>
+    <span id="pillRegular">— Regular</span>
+  </div>
+  <div class="summary-pill suspended">
+    <span class="pill-dot"></span>
+    <span id="pillSuspended">— Suspended</span>
   </div>
 </div>
+
+<!-- ── TOOLBAR ── -->
+<div class="users-toolbar">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+    </svg>
+    <input
+      class="search-input"
+      id="searchInput"
+      type="text"
+      placeholder="Search name, username, phone…"
+      autocomplete="off"
+    />
+  </div>
+
+  <select class="filter-select" id="typeFilter">
+    <option value="all">All types</option>
+    <option value="student">Students</option>
+    <option value="regular">Regular</option>
+    <option value="suspended">Suspended</option>
+  </select>
+
+  <span class="toolbar-count" id="toolbarCount">Loading…</span>
+</div>
+
+<!-- ── TABLE ── -->
+<div class="table-card">
+  <div id="tableWrap">
+    <table class="users-table" id="usersTable">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Balance</th>
+          <th>Type</th>
+          <th>School</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+              <div class="empty-title">Loading users…</div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination-row" id="paginationRow" style="display:none;">
+    <span class="page-info" id="pageInfo">Page 1</span>
+    <div class="page-btns">
+      <button class="page-btn" id="prevBtn" disabled>← Prev</button>
+      <button class="page-btn" id="nextBtn" disabled>Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM MODAL ── -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">
+      <svg id="modalIconSvg" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></svg>
+    </div>
+    <div class="modal-title" id="modalTitle">Confirm action</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="modalCancel">Cancel</button>
+      <button class="modal-btn" id="modalConfirm">
+        <span id="modalConfirmLabel">Confirm</span>
+        <span class="spinner" id="modalSpinner"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST CONTAINER ── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+(function () {
+  /* ── STATE ── */
+  const PAGE_SIZE = 20;
+  let allUsers = [];
+  let filtered = [];
+  let currentPage = 1;
+  let pendingAction = null;   // { type, userId, extra }
+
+  /* ── ELEMENTS ── */
+  const tbody        = document.getElementById('usersTableBody');
+  const searchInput  = document.getElementById('searchInput');
+  const typeFilter   = document.getElementById('typeFilter');
+  const toolbarCount = document.getElementById('toolbarCount');
+  const pageInfo     = document.getElementById('pageInfo');
+  const prevBtn      = document.getElementById('prevBtn');
+  const nextBtn      = document.getElementById('nextBtn');
+  const paginationRow= document.getElementById('paginationRow');
+
+  // Modal
+  const modal         = document.getElementById('confirmModal');
+  const modalIcon     = document.getElementById('modalIcon');
+  const modalIconSvg  = document.getElementById('modalIconSvg');
+  const modalTitle    = document.getElementById('modalTitle');
+  const modalBody     = document.getElementById('modalBody');
+  const modalConfirm  = document.getElementById('modalConfirm');
+  const modalConfirmLabel = document.getElementById('modalConfirmLabel');
+  const modalSpinner  = document.getElementById('modalSpinner');
+  const modalCancel   = document.getElementById('modalCancel');
+
+  /* ── ICONS ── */
+  const ICONS = {
+    warn:   '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    danger: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>',
+    info:   '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    ok:     '<polyline points="20 6 9 17 4 12"/>',
+  };
+
+  /* ── FETCH USERS ── */
+  async function loadUsers() {
+    try {
+      const res  = await fetch('/admin/api/users/list');
+      const data = await res.json();
+      if (data.success) {
+        allUsers = data.users || [];
+        updateSummary();
+        applyFilters();
+      } else {
+        showEmptyState('Failed to load users: ' + (data.message || 'Unknown error'));
+      }
+    } catch (e) {
+      showEmptyState('Network error. Please refresh.');
+    }
+  }
+
+  function updateSummary() {
+    const total     = allUsers.length;
+    const students  = allUsers.filter(u => u.user_type === 'student').length;
+    const regular   = allUsers.filter(u => u.user_type === 'regular').length;
+    const suspended = allUsers.filter(u => u.pricing_suspended).length;
+    document.getElementById('pillAll').textContent       = total     + ' Total';
+    document.getElementById('pillStudent').textContent   = students  + ' Students';
+    document.getElementById('pillRegular').textContent   = regular   + ' Regular';
+    document.getElementById('pillSuspended').textContent = suspended + ' Suspended';
+  }
+
+  /* ── FILTER + SEARCH ── */
+  function applyFilters() {
+    const q    = searchInput.value.trim().toLowerCase();
+    const type = typeFilter.value;
+
+    filtered = allUsers.filter(function (u) {
+      // type filter
+      if (type === 'student'  && u.user_type !== 'student') return false;
+      if (type === 'regular'  && u.user_type !== 'regular') return false;
+      if (type === 'suspended' && !u.pricing_suspended)     return false;
+
+      // text search
+      if (q) {
+        const hay = [u.name, u.username, u.phone, u.school].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    currentPage = 1;
+    toolbarCount.textContent = filtered.length + ' user' + (filtered.length !== 1 ? 's' : '');
+    renderPage();
+  }
+
+  /* ── RENDER ── */
+  function renderPage() {
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page  = filtered.slice(start, start + PAGE_SIZE);
+
+    if (!page.length) {
+      tbody.innerHTML = `
+        <tr><td colspan="5">
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4"/><path d="M4 21c0-3.87 3.58-7 8-7s8 3.13 8 7"/>
+              </svg>
+            </div>
+            <div class="empty-title">No users found</div>
+            <div class="empty-sub">Try adjusting your search or filter.</div>
+          </div>
+        </td></tr>`;
+      paginationRow.style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = page.map(renderUserRow).join('');
+
+    // Pagination
+    paginationRow.style.display = '';
+    pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages +
+      ' (' + filtered.length + ' users)';
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  function renderUserRow(u) {
+    const initials  = initials2(u.name || u.username || '?');
+    const balance   = typeof u.balance === 'number' ? u.balance : 0;
+    const isStudent = u.user_type === 'student';
+    const isSusp    = !!u.pricing_suspended;
+
+    // badge
+    let badge;
+    if (isSusp) {
+      badge = `<span class="badge suspended">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+        </svg>
+        Suspended
+      </span>`;
+    } else if (isStudent) {
+      badge = `<span class="badge student">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 2.33 8.67 2.33 12 0v-5"/>
+        </svg>
+        Student
+      </span>`;
+    } else {
+      badge = `<span class="badge regular">Regular</span>`;
+    }
+
+    // type toggle button label
+    const toggleLabel = isStudent ? 'Make Regular' : 'Make Student';
+
+    // suspend / reinstate button
+    const suspendBtn = isSusp
+      ? `<button class="action-btn reinstate" onclick="openAction('reinstate','${u.id}','${escHtml(u.name || u.username || 'this user')}')">
+           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="20 6 9 17 4 12"/>
+           </svg>
+           <span>Reinstate</span>
+         </button>`
+      : `<button class="action-btn suspend" onclick="openAction('suspend','${u.id}','${escHtml(u.name || u.username || 'this user')}')">
+           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+           </svg>
+           <span>Suspend</span>
+         </button>`;
+
+    const school = u.school
+      ? `<span class="school-cell">${escHtml(u.school)}</span>`
+      : `<span class="school-cell school-none">—</span>`;
+
+    return `
+      <tr data-user-id="${u.id}">
+        <td>
+          <div class="user-cell">
+            <div class="user-avatar">${initials}</div>
+            <div>
+              <div class="user-name">${escHtml(u.name || 'No name')}</div>
+              <div class="user-handle">@${escHtml(u.username || '—')}${u.phone ? ' · ' + escHtml(u.phone) : ''}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="balance-cell">
+            <span class="balance-currency">₦</span>${balance.toLocaleString('en-NG', {minimumFractionDigits:2,maximumFractionDigits:2})}
+          </span>
+        </td>
+        <td>${badge}</td>
+        <td>${school}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="action-btn type-toggle" onclick="openAction('type','${u.id}','${escHtml(u.name || u.username || 'this user')}','${isStudent ? 'regular' : 'student'}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+              </svg>
+              <span>${toggleLabel}</span>
+            </button>
+            ${suspendBtn}
+            <button class="action-btn revoke" onclick="openAction('revoke','${u.id}','${escHtml(u.name || u.username || 'this user')}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
+              </svg>
+              <span>Revoke Code</span>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  /* ── MODAL ── */
+  const ACTION_CONFIG = {
+    type: function (extra) {
+      const toStudent = extra === 'student';
+      return {
+        variant: 'info',
+        icon: ICONS.info,
+        title: toStudent ? 'Grant Student Pricing' : 'Set to Regular Pricing',
+        body: toStudent
+          ? 'This will set <strong>{name}</strong> to <strong>Student</strong> type, granting them discounted student pricing on all data plans.'
+          : 'This will set <strong>{name}</strong> to <strong>Regular</strong> type, removing student pricing discounts.',
+        confirmLabel: toStudent ? 'Grant Student' : 'Set Regular',
+        confirmClass: 'confirm-info',
+      };
+    },
+    suspend: function () {
+      return {
+        variant: 'warn',
+        icon: ICONS.warn,
+        title: 'Suspend Pricing Access',
+        body: 'Suspending <strong>{name}</strong> will prevent them from making purchases until reinstated. Their wallet balance is not affected.',
+        confirmLabel: 'Suspend Access',
+        confirmClass: 'confirm-warn',
+      };
+    },
+    reinstate: function () {
+      return {
+        variant: 'ok',
+        icon: ICONS.ok,
+        title: 'Reinstate Pricing Access',
+        body: 'This will restore full purchase access for <strong>{name}</strong>.',
+        confirmLabel: 'Reinstate',
+        confirmClass: 'confirm-ok',
+      };
+    },
+    revoke: function () {
+      return {
+        variant: 'danger',
+        icon: ICONS.danger,
+        title: 'Revoke User Code',
+        body: 'This will reset <strong>{name}</strong>\'s account type to <strong>Regular</strong> and remove any school/student affiliation. This cannot be undone automatically.',
+        confirmLabel: 'Revoke Code',
+        confirmClass: 'confirm-danger',
+      };
+    },
+  };
+
+  window.openAction = function (type, userId, userName, extra) {
+    pendingAction = { type, userId, extra };
+    const cfg = ACTION_CONFIG[type](extra);
+    const body = cfg.body.replace('{name}', escHtml(userName));
+
+    // icon variant
+    modalIcon.className = 'modal-icon ' + cfg.variant;
+    modalIconSvg.innerHTML = cfg.icon;
+
+    modalTitle.textContent = cfg.title;
+    modalBody.innerHTML = body;
+
+    // button class
+    modalConfirm.className = 'modal-btn ' + cfg.confirmClass;
+    modalConfirmLabel.textContent = cfg.confirmLabel;
+    modalSpinner.style.display = 'none';
+
+    modal.classList.add('open');
+  };
+
+  modalCancel.addEventListener('click', function () {
+    modal.classList.remove('open');
+    pendingAction = null;
+  });
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) { modal.classList.remove('open'); pendingAction = null; }
+  });
+
+  modalConfirm.addEventListener('click', async function () {
+    if (!pendingAction) return;
+    const { type, userId, extra } = pendingAction;
+
+    modalConfirmLabel.textContent = 'Working…';
+    modalSpinner.style.display = 'inline-block';
+    modalConfirm.disabled = true;
+    modalCancel.disabled  = true;
+
+    let url, body;
+    if (type === 'type') {
+      url  = '/admin/api/users/set-type';
+      body = { user_id: userId, user_type: extra };
+    } else if (type === 'suspend') {
+      url  = '/admin/api/users/suspend';
+      body = { user_id: userId, suspended: true };
+    } else if (type === 'reinstate') {
+      url  = '/admin/api/users/suspend';
+      body = { user_id: userId, suspended: false };
+    } else if (type === 'revoke') {
+      url  = '/admin/api/users/revoke';
+      body = { user_id: userId };
+    }
+
+    try {
+      const res  = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+
+      modal.classList.remove('open');
+      pendingAction = null;
+
+      if (data.success) {
+        toast(data.message || 'Done!', 'success');
+        await loadUsers(); // refresh
+      } else {
+        toast(data.message || 'Action failed.', 'error');
+      }
+    } catch (e) {
+      toast('Network error. Please try again.', 'error');
+    } finally {
+      modalConfirm.disabled = false;
+      modalCancel.disabled  = false;
+    }
+  });
+
+  /* ── TOAST ── */
+  const TOAST_ICONS = {
+    success: '<polyline points="20 6 9 17 4 12"/>',
+    error:   '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+    warn:    '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  };
+  function toast(msg, type) {
+    type = type || 'success';
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TOAST_ICONS[type]||TOAST_ICONS.success}</svg><span>${escHtml(msg)}</span>`;
+    document.getElementById('toastContainer').appendChild(el);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { el.classList.add('show'); });
+    });
+    setTimeout(function () {
+      el.classList.remove('show');
+      setTimeout(function () { el.remove(); }, 400);
+    }, 3200);
+  }
+
+  /* ── EMPTY STATE ── */
+  function showEmptyState(msg) {
+    tbody.innerHTML = `
+      <tr><td colspan="5">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <div class="empty-title">Something went wrong</div>
+          <div class="empty-sub">${escHtml(msg)}</div>
+        </div>
+      </td></tr>`;
+    toolbarCount.textContent = '0 users';
+    paginationRow.style.display = 'none';
+  }
+
+  /* ── PAGINATION ── */
+  prevBtn.addEventListener('click', function () {
+    if (currentPage > 1) { currentPage--; renderPage(); }
+  });
+  nextBtn.addEventListener('click', function () {
+    const total = Math.ceil(filtered.length / PAGE_SIZE);
+    if (currentPage < total) { currentPage++; renderPage(); }
+  });
+
+  /* ── SEARCH / FILTER EVENTS ── */
+  let searchTimeout;
+  searchInput.addEventListener('input', function () {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(applyFilters, 200);
+  });
+  typeFilter.addEventListener('change', applyFilters);
+
+  /* ── UTILS ── */
+  function initials2(name) {
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  /* ── INIT ── */
+  loadUsers();
+})();
+</script>
 {% endblock %}
