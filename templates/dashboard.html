@@ -556,10 +556,10 @@
       </div>
       <div class="balance-row">
         <div class="balance-amount">
-          <span class="balance-naira">₦</span>{{ "{:,.2f}".format(user.balance or 0).split(".")[0] }}<<span class="balance-decimals">.{{ "{:,.2f}".format(user.balance or 0).split(".")[1] }}</span>
+          <span class="balance-naira">₦</span>{{ "{:,.2f}".format(user.balance or 0).split(".")[0] }}<span class="balance-decimals">.{{ "{:,.2f}".format(user.balance or 0).split(".")[1] }}</span>
         </div>
-        <!-- FUND WALLET LINK - Updated to route to fund page -->
-        <a class="fund-wallet-btn" id="fundWalletBtn" href="{{ url_for('fund', telegram_id=user.telegram_id) }}">
+        <!-- FUND WALLET LINK -->
+        <a class="fund-wallet-btn" id="fundWalletBtn" href="{{ url_for('fund_page', telegram_id=user.telegram_id) }}">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
