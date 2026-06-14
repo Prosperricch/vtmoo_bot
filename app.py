@@ -132,6 +132,28 @@ class PerkApplication(db.Model):
     updated_at       = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+# ===================== PERKS SETTINGS MODEL =====================
+class PerksSettings(db.Model):
+    __tablename__ = 'vtmoo_perks_settings'
+
+    id                 = db.Column(db.Integer, primary_key=True)
+    applications_open  = db.Column(db.Boolean, default=True)
+    total_spots        = db.Column(db.Integer,  default=40)
+    show_spots         = db.Column(db.Boolean, default=True)
+    allow_applications = db.Column(db.Boolean, default=True)
+    updated_at         = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @classmethod
+    def get(cls):
+        """Always returns the single settings row, creating it if needed."""
+        s = cls.query.first()
+        if not s:
+            s = cls()
+            db.session.add(s)
+            db.session.commit()
+        return s
+
+
 # ===================== NETWORK MODEL =====================
 class Network(db.Model):
     __tablename__ = 'vtmoo_networks'
@@ -952,6 +974,246 @@ def payment_callback():
     return redirect(url_for('fund_page', telegram_id=user.telegram_id, ref=reference or ''))
 
 
+# ── ADMIN API — PERKS SETTINGS ───────────────────────────────────────
+@app.route('/admin/api/perks/settings', methods=['GET'])
+@admin_required
+def admin_api_perks_settings_get():
+    s = PerksSettings.get()
+    return jsonify(success=True, settings={
+        'applications_open':  s.applications_open,
+        'total_spots':        s.total_spots,
+        'show_spots':         s.show_spots,
+        'allow_applications': s.allow_applications,
+    })
+
+
+@app.route('/admin/api/perks/settings', methods=['POST'])
+@admin_required
+def admin_api_perks_settings_save():
+    data = request.get_json(silent=True) or {}
+    s = PerksSettings.get()
+    s.applications_open  = bool(data.get('applications_open',  s.applications_open))
+    s.total_spots        = int(data.get('total_spots',         s.total_spots))
+    s.show_spots         = bool(data.get('show_spots',         s.show_spots))
+    s.allow_applications = bool(data.get('allow_applications', s.allow_applications))
+    s.updated_at         = datetime.utcnow()
+    db.session.commit()
+    return jsonify(success=True, message='Settings saved.')
+
+
+# ── ADMIN API: PERKS APPLICATIONS ────────────────────────────────────
+@app.route('/admin/api/perks/applications', methods=['GET'])
+@admin_required
+def admin_api_perks_applications_list():
+    apps = PerkApplication.query.order_by(PerkApplication.created_at.desc()).all()
+    result = []
+    for a in apps:
+        user = User.query.filter_by(telegram_id=a.telegram_id).first()
+        result.append({
+            'id':              a.id,
+            'telegram_id':     a.telegram_id,
+            'user_name':       user.name     if user else 'Unknown',
+            'username':        user.username if user else '',
+            'school':          a.school,
+            'matric_number':   a.matric_number,
+            'level':           a.level,
+            'status':          a.status,
+            'rejection_reason': a.rejection_reason or '',
+            'created_at':      a.created_at.isoformat() if a.created_at else '',
+        })
+    return jsonify(success=True, applications=result)
+
+
+@app.route('/admin/api/perks/applications/approve', methods=['POST'])
+@admin_required
+def admin_api_perks_approve():
+    data = request.get_json(silent=True) or {}
+    app_id = data.get('application_id')
+    if not app_id:
+        return jsonify(success=False, message='Missing application_id'), 400
+
+    application = PerkApplication.query.get(app_id)
+    if not application:
+        return jsonify(success=False, message='Application not found'), 404
+
+    user = User.query.filter_by(telegram_id=application.telegram_id).first()
+    if not user:
+        return jsonify(success=False, message='User not found'), 404
+
+    # Check spot limit
+    settings      = PerksSettings.get()
+    active_count  = User.query.filter_by(user_type='student').count()
+    if active_count >= settings.total_spots:
+        return jsonify(success=False, message='No spots remaining. Increase total spots in settings.'), 400
+
+    application.status     = 'approved'
+    application.updated_at = datetime.utcnow()
+    user.user_type         = 'student'
+    user.pricing_suspended = False
+    if application.school:
+        user.school = application.school
+    db.session.commit()
+
+    create_notification(
+        user.telegram_id,
+        '🎉 Student Perks Approved!',
+        'Congratulations! You are now a Student Perks member. Student prices have been activated.',
+        ntype='success'
+    )
+    return jsonify(success=True, message='Application approved.')
+
+
+@app.route('/admin/api/perks/applications/reject', methods=['POST'])
+@admin_required
+def admin_api_perks_reject():
+    data   = request.get_json(silent=True) or {}
+    app_id = data.get('application_id')
+    reason = (data.get('reason') or '').strip()
+    if not app_id:
+        return jsonify(success=False, message='Missing application_id'), 400
+
+    application = PerkApplication.query.get(app_id)
+    if not application:
+        return jsonify(success=False, message='Application not found'), 404
+
+    application.status           = 'rejected'
+    application.rejection_reason = reason or None
+    application.updated_at       = datetime.utcnow()
+    db.session.commit()
+
+    user = User.query.filter_by(telegram_id=application.telegram_id).first()
+    if user:
+        create_notification(
+            user.telegram_id,
+            'Student Perks application not approved',
+            f'Your application was not approved.{" Reason: " + reason if reason else ""}',
+            ntype='warning'
+        )
+    return jsonify(success=True, message='Application rejected.')
+
+
+@app.route('/admin/api/perks/applications/bulk-approve', methods=['POST'])
+@admin_required
+def admin_api_perks_bulk_approve():
+    data    = request.get_json(silent=True) or {}
+    ids     = data.get('application_ids', [])
+    if not ids:
+        return jsonify(success=False, message='No application IDs provided.'), 400
+
+    settings     = PerksSettings.get()
+    active_count = User.query.filter_by(user_type='student').count()
+    spots_left   = settings.total_spots - active_count
+    approved     = 0
+    skipped      = 0
+
+    for app_id in ids:
+        if spots_left <= 0:
+            skipped += 1
+            continue
+        application = PerkApplication.query.get(app_id)
+        if not application or application.status != 'pending':
+            continue
+        user = User.query.filter_by(telegram_id=application.telegram_id).first()
+        if not user:
+            continue
+        application.status     = 'approved'
+        application.updated_at = datetime.utcnow()
+        user.user_type         = 'student'
+        user.pricing_suspended = False
+        if application.school:
+            user.school = application.school
+        create_notification(
+            user.telegram_id,
+            '🎉 Student Perks Approved!',
+            'Congratulations! You are now a Student Perks member. Student prices have been activated.',
+            ntype='success'
+        )
+        approved    += 1
+        spots_left  -= 1
+
+    db.session.commit()
+    msg = f'{approved} approved.'
+    if skipped:
+        msg += f' {skipped} skipped (spots full).'
+    return jsonify(success=True, approved=approved, skipped=skipped, message=msg)
+
+
+@app.route('/admin/api/perks/applications/bulk-reject', methods=['POST'])
+@admin_required
+def admin_api_perks_bulk_reject():
+    data   = request.get_json(silent=True) or {}
+    ids    = data.get('application_ids', [])
+    reason = (data.get('reason') or '').strip()
+    if not ids:
+        return jsonify(success=False, message='No application IDs provided.'), 400
+
+    rejected = 0
+    for app_id in ids:
+        application = PerkApplication.query.get(app_id)
+        if not application or application.status != 'pending':
+            continue
+        application.status           = 'rejected'
+        application.rejection_reason = reason or None
+        application.updated_at       = datetime.utcnow()
+        user = User.query.filter_by(telegram_id=application.telegram_id).first()
+        if user:
+            create_notification(
+                user.telegram_id,
+                'Student Perks application not approved',
+                f'Your application was not approved.{" Reason: " + reason if reason else ""}',
+                ntype='warning'
+            )
+        rejected += 1
+
+    db.session.commit()
+    return jsonify(success=True, rejected=rejected, message=f'{rejected} application(s) rejected.')
+
+
+# ── ADMIN API: ADD MEMBER MANUALLY ────────────────────────────────────
+@app.route('/admin/api/perks/add-member', methods=['POST'])
+@admin_required
+def admin_api_perks_add_member():
+    data       = request.get_json(silent=True) or {}
+    identifier = (data.get('identifier') or '').strip().lstrip('@')
+    school     = (data.get('school') or '').strip()
+    department = (data.get('department') or '').strip()
+    level      = (data.get('level') or '').strip()
+
+    if not identifier:
+        return jsonify(success=False, message='Please provide a username or Telegram ID.'), 400
+
+    # Try by telegram_id first, then by username
+    user = None
+    try:
+        tid  = int(identifier)
+        user = User.query.filter_by(telegram_id=tid).first()
+    except ValueError:
+        user = User.query.filter_by(username=identifier).first()
+
+    if not user:
+        return jsonify(success=False, message=f'No user found for "{identifier}".'), 404
+
+    # Spot check
+    settings     = PerksSettings.get()
+    active_count = User.query.filter_by(user_type='student').count()
+    if active_count >= settings.total_spots and user.user_type != 'student':
+        return jsonify(success=False, message='No spots remaining. Increase total spots first.'), 400
+
+    user.user_type         = 'student'
+    user.pricing_suspended = False
+    if school:
+        user.school = school
+    db.session.commit()
+
+    create_notification(
+        user.telegram_id,
+        '🎓 Student Perks Activated',
+        'An admin has granted you Student Perks. Student pricing is now active on your account.',
+        ntype='success'
+    )
+    return jsonify(success=True, message=f'{user.name or user.username or "User"} added to Student Perks.')
+
+
 # ── ADMIN API — NETWORK ───────────────────────────────────────────────
 @app.route('/admin/api/network/add', methods=['POST'])
 @admin_required
@@ -1194,6 +1456,10 @@ def run_migrations():
         "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS school VARCHAR(150)",
         "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS user_type VARCHAR(20) DEFAULT 'regular'",
         "ALTER TABLE vtmoo_users ADD COLUMN IF NOT EXISTS pricing_suspended BOOLEAN DEFAULT FALSE",
+        "CREATE TABLE IF NOT EXISTS vtmoo_perks_settings "
+        "(id SERIAL PRIMARY KEY, applications_open BOOLEAN DEFAULT TRUE, "
+        "total_spots INTEGER DEFAULT 40, show_spots BOOLEAN DEFAULT TRUE, "
+        "allow_applications BOOLEAN DEFAULT TRUE, updated_at TIMESTAMP DEFAULT NOW())",
     ]
     with db.engine.connect() as conn:
         for stmt in migrations:
