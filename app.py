@@ -1713,12 +1713,44 @@ with app.app_context():
 
 def run_bot():
     print("🤖 Telegram Bot is Running...")
-    bot.infinity_polling()
+    bot.infinity_polling(none_stop=True, interval=0, timeout=20)
 
 
-bot_thread = threading.Thread(target=run_bot)
-bot_thread.daemon = True
-bot_thread.start()
+def start_bot_thread():
+    """Start the polling thread exactly once per process."""
+    t = threading.Thread(target=run_bot, name='bot-polling', daemon=True)
+    t.start()
+
+
+# ── Gunicorn worker hook ──────────────────────────────────────────────
+# When gunicorn forks a worker it calls post_fork in gunicorn config, but
+# the simplest portable approach is the 'werkzeug' / os.environ guard below:
+# only the FIRST call in a given worker process actually starts the thread.
+_BOT_STARTED = False
+
+def _ensure_bot_started():
+    global _BOT_STARTED
+    if not _BOT_STARTED:
+        _BOT_STARTED = True
+        start_bot_thread()
+
+# Register as a gunicorn post_fork hook if running under gunicorn,
+# otherwise start immediately (local dev / __main__).
+try:
+    from gunicorn.arbiter import Arbiter  # noqa: F401 — just checking if gunicorn is present
+
+    # gunicorn imports app at master level then forks workers.
+    # We hook into the WSGI app's first real request instead of module load,
+    # using Flask's before_request to fire once per worker process.
+    @app.before_request
+    def _start_bot_on_first_request():
+        _ensure_bot_started()
+        # Remove ourselves after first call so we don't run on every request
+        app.before_request_funcs[None].remove(_start_bot_on_first_request)
+
+except ImportError:
+    # Not running under gunicorn — start immediately
+    start_bot_thread()
 
 
 # ===================== HEALTH CHECK =====================
