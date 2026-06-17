@@ -224,11 +224,11 @@ class PaystackTransaction(db.Model):
 
 # ===================== HELPERS =====================
 def prompt_pin_setup(telegram_id, is_new_user=False):
-    with app.app_context():
-        user = User.query.filter_by(telegram_id=telegram_id).first()
-        if user and not user.transaction_pin:
-            user.pin_pending = True
-            db.session.commit()
+    """Send PIN setup message. Must be called from within an app context."""
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if user and not user.transaction_pin:
+        user.pin_pending = True
+        db.session.commit()
     if is_new_user:
         bot.send_message(
             telegram_id,
@@ -248,20 +248,20 @@ def prompt_pin_setup(telegram_id, is_new_user=False):
 
 
 def get_or_create_user(telegram_id, username, name):
-    with app.app_context():
-        user = User.query.filter_by(telegram_id=telegram_id).first()
-        if not user:
-            user = User(telegram_id=telegram_id, username=username, name=name, pin_pending=True)
-            db.session.add(user)
-            db.session.commit()
-            prompt_pin_setup(telegram_id, is_new_user=True)
+    """Must be called from within an app context."""
+    user = User.query.filter_by(telegram_id=telegram_id).first()
+    if not user:
+        user = User(telegram_id=telegram_id, username=username, name=name, pin_pending=True)
+        db.session.add(user)
+        db.session.commit()
+        prompt_pin_setup(telegram_id, is_new_user=True)
+    else:
+        if not user.transaction_pin:
+            prompt_pin_setup(telegram_id, is_new_user=False)
         else:
-            if not user.transaction_pin:
-                prompt_pin_setup(telegram_id, is_new_user=False)
-            else:
-                user.pin_pending = False
-                db.session.commit()
-                send_dashboard_link(telegram_id)
+            user.pin_pending = False
+            db.session.commit()
+            send_dashboard_link(telegram_id)
     return user
 
 
@@ -460,98 +460,121 @@ def register_bot_commands():
 # ===================== BOT COMMANDS =====================
 @bot.message_handler(commands=['start'])
 def start(message):
-    get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
+    try:
+        with app.app_context():
+            get_or_create_user(
+                message.from_user.id,
+                message.from_user.username,
+                message.from_user.first_name
+            )
+    except Exception as e:
+        app.logger.exception(f"[/start] error: {e}")
+        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
 
 
 @bot.message_handler(commands=['setpin'])
 def setpin_command(message):
-    with app.app_context():
-        user = User.query.filter_by(telegram_id=message.from_user.id).first()
-        if not user:
-            bot.send_message(message.chat.id,
-                             "You don't have an account yet. Send /start to create one.")
-            return
-        if user.transaction_pin:
-            bot.send_message(message.chat.id,
-                             "You already have a PIN set.\n"
-                             "To change it, use the Profile section in your dashboard.")
-            return
-        prompt_pin_setup(message.from_user.id, is_new_user=False)
+    try:
+        with app.app_context():
+            user = User.query.filter_by(telegram_id=message.from_user.id).first()
+            if not user:
+                bot.send_message(message.chat.id,
+                                 "You don't have an account yet. Send /start to create one.")
+                return
+            if user.transaction_pin:
+                bot.send_message(message.chat.id,
+                                 "You already have a PIN set.\n"
+                                 "To change it, use the Profile section in your dashboard.")
+                return
+            prompt_pin_setup(message.from_user.id, is_new_user=False)
+    except Exception as e:
+        app.logger.exception(f"[/setpin] error: {e}")
+        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
 
 
 @bot.message_handler(commands=['dashboard'])
 def dashboard_command(message):
-    with app.app_context():
-        user = User.query.filter_by(telegram_id=message.from_user.id).first()
-        if not user or not user.transaction_pin:
-            prompt_pin_setup(message.from_user.id, is_new_user=(user is None))
-            return
-    send_dashboard_link(message.chat.id)
+    try:
+        with app.app_context():
+            user = User.query.filter_by(telegram_id=message.from_user.id).first()
+            if not user or not user.transaction_pin:
+                prompt_pin_setup(message.from_user.id, is_new_user=(user is None))
+                return
+            send_dashboard_link(message.chat.id)
+    except Exception as e:
+        app.logger.exception(f"[/dashboard] error: {e}")
+        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
 
 
 @bot.message_handler(commands=['channel'])
 def channel_command(message):
-    send_channel_prompt(message.chat.id)
+    try:
+        send_channel_prompt(message.chat.id)
+    except Exception as e:
+        app.logger.exception(f"[/channel] error: {e}")
 
 
 @bot.message_handler(commands=['help'])
 def help_command(message):
-    bot.send_message(
-        message.chat.id,
-        "📋 *VTMoo Commands*\n\n"
-        "/start — Start or re-register\n"
-        "/dashboard — Open your dashboard\n"
-        "/setpin — Set your transaction PIN\n"
-        "/channel — Join our official channel\n"
-        "/help — Show this message",
-        parse_mode="Markdown"
-    )
+    try:
+        bot.send_message(
+            message.chat.id,
+            "📋 *VTMoo Commands*\n\n"
+            "/start — Start or re-register\n"
+            "/dashboard — Open your dashboard\n"
+            "/setpin — Set your transaction PIN\n"
+            "/channel — Join our official channel\n"
+            "/help — Show this message",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        app.logger.exception(f"[/help] error: {e}")
 
 
 @bot.message_handler(func=lambda m: True, content_types=['text'])
 def handle_any_text(message):
-    """
-    Persistent PIN collection: intercepts every non-command text message.
-    If the user has no PIN set yet, treat their message as a PIN attempt.
-    """
+    """Handles PIN collection and nudges users with a PIN to open the dashboard."""
     if message.text and message.text.startswith('/'):
         return
+    try:
+        with app.app_context():
+            user = User.query.filter_by(telegram_id=message.from_user.id).first()
 
-    with app.app_context():
-        user = User.query.filter_by(telegram_id=message.from_user.id).first()
-
-        if not user:
-            bot.send_message(message.chat.id,
-                             "Please send /start to create your account first.")
-            return
-
-        if not user.transaction_pin:
-            pin = (message.text or '').strip()
-            if not re.match(r'^\d{4}$', pin):
-                bot.send_message(
-                    message.chat.id,
-                    "❌ That's not a valid PIN.\n"
-                    "Please send exactly *4 digits* (e.g. 1234):",
-                    parse_mode="Markdown"
-                )
-                if not user.pin_pending:
-                    user.pin_pending = True
-                    db.session.commit()
+            if not user:
+                bot.send_message(message.chat.id,
+                                 "Please send /start to create your account first.")
                 return
 
-            user.set_pin(pin)
-            user.pin_pending = False
-            db.session.commit()
-            bot.send_message(
-                message.chat.id,
-                "✅ *PIN set successfully!*\n\n"
-                "You can now open your dashboard and start using VTMoo.",
-                parse_mode="Markdown"
-            )
-            send_dashboard_link(message.chat.id)
-            return
+            if not user.transaction_pin:
+                pin = (message.text or '').strip()
+                if not re.match(r'^\d{4}$', pin):
+                    bot.send_message(
+                        message.chat.id,
+                        "❌ That's not a valid PIN.\n"
+                        "Please send exactly *4 digits* (e.g. 1234):",
+                        parse_mode="Markdown"
+                    )
+                    if not user.pin_pending:
+                        user.pin_pending = True
+                        db.session.commit()
+                    return
 
-        send_dashboard_link(message.chat.id)
+                user.set_pin(pin)
+                user.pin_pending = False
+                db.session.commit()
+                bot.send_message(
+                    message.chat.id,
+                    "✅ *PIN set successfully!*\n\n"
+                    "You can now open your dashboard and start using VTMoo.",
+                    parse_mode="Markdown"
+                )
+                send_dashboard_link(message.chat.id)
+                return
+
+            send_dashboard_link(message.chat.id)
+    except Exception as e:
+        app.logger.exception(f"[handle_any_text] error: {e}")
+        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
 
 
 # ===================== FLASK ROUTES =====================
