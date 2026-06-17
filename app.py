@@ -28,12 +28,9 @@ app.config['SQLALCHEMY_ECHO'] = False
 db = SQLAlchemy(app)
 
 # ===================== CONFIG =====================
-BOT_TOKEN      = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
-PUBLIC_URL     = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
+BOT_TOKEN    = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
+PUBLIC_URL   = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
-
-# ===================== CHANNEL CONFIG =====================
-CHANNEL_URL = os.environ.get('CHANNEL_URL', 'https://t.me/+5Tocjkgd5PdjNTU0')
 
 # ===================== DATA SUPPLIER CONFIG =====================
 DATA_SUPPLIER_BASE_URL = os.environ.get('DATA_SUPPLIER_BASE_URL', '')
@@ -49,22 +46,22 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 
 # ===================== KEEP-ALIVE =====================
-# Pings /health every 4 minutes so the free Render instance never sleeps.
-# Render spins down after 15 minutes of inactivity — 4 min interval is safe.
-# This is critical for webhooks: if the instance is asleep when Telegram
-# delivers an update, Telegram waits ~5s then gives up and retries later.
+# Pings the app every 14 minutes so Render free tier never sleeps.
+# PUBLIC_URL must be set to your Render URL (e.g. https://vtmoo.onrender.com).
 def _keep_alive():
-    time.sleep(30)   # wait for server to fully start
+    # Wait 30 s at startup so the server is fully up before the first ping.
+    time.sleep(30)
     while True:
         try:
             if PUBLIC_URL and 'your-app-name' not in PUBLIC_URL:
                 requests.get(f"{PUBLIC_URL}/health", timeout=10)
         except Exception:
-            pass
-        time.sleep(240)  # every 4 minutes
+            pass          # silently ignore — network hiccups are fine
+        time.sleep(840)  # 14 minutes  (Render sleeps after 15 min of no traffic)
 
 _keep_alive_thread = threading.Thread(target=_keep_alive, name='keep-alive', daemon=True)
 _keep_alive_thread.start()
+# ======================================================
 
 
 # ===================== USER MODEL =====================
@@ -78,10 +75,12 @@ class User(db.Model):
     phone         = db.Column(db.String(20),  unique=True, nullable=True, index=True)
     school        = db.Column(db.String(150), nullable=True)
 
+    # 'regular' | 'student'
     user_type         = db.Column(db.String(20),  default='regular')
     pricing_suspended = db.Column(db.Boolean,      default=False)
 
     transaction_pin = db.Column(db.String(256), nullable=True)
+    # True while we're waiting for the user to send their first PIN via Telegram
     pin_pending     = db.Column(db.Boolean, default=False)
     balance         = db.Column(db.Float, default=0.0)
 
@@ -167,6 +166,7 @@ class PerksSettings(db.Model):
 
     @classmethod
     def get(cls):
+        """Always returns the single settings row, creating it if needed."""
         s = cls.query.first()
         if not s:
             s = cls()
@@ -224,11 +224,12 @@ class PaystackTransaction(db.Model):
 
 # ===================== HELPERS =====================
 def prompt_pin_setup(telegram_id, is_new_user=False):
-    """Send PIN setup message. Must be called from within an app context."""
-    user = User.query.filter_by(telegram_id=telegram_id).first()
-    if user and not user.transaction_pin:
-        user.pin_pending = True
-        db.session.commit()
+    """Mark user as pin_pending in DB, then ask them to send their PIN."""
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=telegram_id).first()
+        if user and not user.transaction_pin:
+            user.pin_pending = True
+            db.session.commit()
     if is_new_user:
         bot.send_message(
             telegram_id,
@@ -248,20 +249,20 @@ def prompt_pin_setup(telegram_id, is_new_user=False):
 
 
 def get_or_create_user(telegram_id, username, name):
-    """Must be called from within an app context."""
-    user = User.query.filter_by(telegram_id=telegram_id).first()
-    if not user:
-        user = User(telegram_id=telegram_id, username=username, name=name, pin_pending=True)
-        db.session.add(user)
-        db.session.commit()
-        prompt_pin_setup(telegram_id, is_new_user=True)
-    else:
-        if not user.transaction_pin:
-            prompt_pin_setup(telegram_id, is_new_user=False)
-        else:
-            user.pin_pending = False
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=telegram_id).first()
+        if not user:
+            user = User(telegram_id=telegram_id, username=username, name=name, pin_pending=True)
+            db.session.add(user)
             db.session.commit()
-            send_dashboard_link(telegram_id)
+            prompt_pin_setup(telegram_id, is_new_user=True)
+        else:
+            if not user.transaction_pin:
+                prompt_pin_setup(telegram_id, is_new_user=False)
+            else:
+                user.pin_pending = False
+                db.session.commit()
+                send_dashboard_link(telegram_id)
     return user
 
 
@@ -273,22 +274,6 @@ def send_dashboard_link(telegram_id):
         web_app=types.WebAppInfo(url=dashboard_url)
     ))
     bot.send_message(telegram_id, "Welcome back! Tap below to view your dashboard:", reply_markup=markup)
-
-
-def send_channel_prompt(telegram_id):
-    channel_markup = types.InlineKeyboardMarkup()
-    channel_markup.add(types.InlineKeyboardButton(
-        "📢 Join Our Channel",
-        url=CHANNEL_URL
-    ))
-    bot.send_message(
-        telegram_id,
-        "📢 *Stay updated!*\n\n"
-        "Join our official channel for announcements, price updates, "
-        "and important news about VTMoo:",
-        reply_markup=channel_markup,
-        parse_mode="Markdown"
-    )
 
 
 def get_telegram_id_from_request(data):
@@ -439,142 +424,102 @@ PLAN_TYPE_LABELS = {
 }
 
 
-# ===================== BOT COMMAND MENU =====================
-BOT_COMMANDS = [
-    types.BotCommand("start",     "Start the bot / open your account"),
-    types.BotCommand("dashboard", "Open your VTMoo dashboard"),
-    types.BotCommand("setpin",    "Set or reset your transaction PIN"),
-    types.BotCommand("channel",   "Join our official announcement channel"),
-    types.BotCommand("help",      "Show all available commands"),
-]
-
-
-def register_bot_commands():
-    try:
-        bot.set_my_commands(BOT_COMMANDS)
-        app.logger.info("✅ Bot command menu registered.")
-    except Exception as e:
-        app.logger.warning(f"Could not register bot commands: {e}")
-
-
 # ===================== BOT COMMANDS =====================
 @bot.message_handler(commands=['start'])
 def start(message):
-    try:
-        with app.app_context():
-            get_or_create_user(
-                message.from_user.id,
-                message.from_user.username,
-                message.from_user.first_name
-            )
-    except Exception as e:
-        app.logger.exception(f"[/start] error: {e}")
-        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
+    get_or_create_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
 
 
 @bot.message_handler(commands=['setpin'])
 def setpin_command(message):
-    try:
-        with app.app_context():
-            user = User.query.filter_by(telegram_id=message.from_user.id).first()
-            if not user:
-                bot.send_message(message.chat.id,
-                                 "You don't have an account yet. Send /start to create one.")
-                return
-            if user.transaction_pin:
-                bot.send_message(message.chat.id,
-                                 "You already have a PIN set.\n"
-                                 "To change it, use the Profile section in your dashboard.")
-                return
-            prompt_pin_setup(message.from_user.id, is_new_user=False)
-    except Exception as e:
-        app.logger.exception(f"[/setpin] error: {e}")
-        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
+    """Allow any user to (re-)enter the PIN setup flow on demand."""
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            bot.send_message(message.chat.id,
+                             "You don't have an account yet. Send /start to create one.")
+            return
+        if user.transaction_pin:
+            bot.send_message(message.chat.id,
+                             "You already have a PIN set.\n"
+                             "To change it, use the Profile section in your dashboard.")
+            return
+        prompt_pin_setup(message.from_user.id, is_new_user=False)
 
 
 @bot.message_handler(commands=['dashboard'])
 def dashboard_command(message):
-    try:
-        with app.app_context():
-            user = User.query.filter_by(telegram_id=message.from_user.id).first()
-            if not user or not user.transaction_pin:
-                prompt_pin_setup(message.from_user.id, is_new_user=(user is None))
-                return
-            send_dashboard_link(message.chat.id)
-    except Exception as e:
-        app.logger.exception(f"[/dashboard] error: {e}")
-        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
-
-
-@bot.message_handler(commands=['channel'])
-def channel_command(message):
-    try:
-        send_channel_prompt(message.chat.id)
-    except Exception as e:
-        app.logger.exception(f"[/channel] error: {e}")
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=message.from_user.id).first()
+        if not user or not user.transaction_pin:
+            prompt_pin_setup(message.from_user.id, is_new_user=(user is None))
+            return
+    send_dashboard_link(message.chat.id)
 
 
 @bot.message_handler(commands=['help'])
 def help_command(message):
-    try:
-        bot.send_message(
-            message.chat.id,
-            "📋 *VTMoo Commands*\n\n"
-            "/start — Start or re-register\n"
-            "/dashboard — Open your dashboard\n"
-            "/setpin — Set your transaction PIN\n"
-            "/channel — Join our official channel\n"
-            "/help — Show this message",
-            parse_mode="Markdown"
-        )
-    except Exception as e:
-        app.logger.exception(f"[/help] error: {e}")
+    bot.send_message(message.chat.id,
+                     "📋 *VTMoo Commands*\n\n"
+                     "/start — Start or re-register\n"
+                     "/dashboard — Open your dashboard\n"
+                     "/setpin — Set your transaction PIN\n"
+                     "/help — Show this message",
+                     parse_mode="Markdown")
 
 
 @bot.message_handler(func=lambda m: True, content_types=['text'])
 def handle_any_text(message):
-    """Handles PIN collection and nudges users with a PIN to open the dashboard."""
+    """
+    Persistent PIN collection: intercepts every text message.
+    If the user has pin_pending=True (no PIN set yet), treat their
+    message as a PIN attempt regardless of when they send it —
+    even after a bot restart.
+    """
+    # Ignore messages that are commands (they're handled above)
     if message.text and message.text.startswith('/'):
         return
-    try:
-        with app.app_context():
-            user = User.query.filter_by(telegram_id=message.from_user.id).first()
 
-            if not user:
-                bot.send_message(message.chat.id,
-                                 "Please send /start to create your account first.")
-                return
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=message.from_user.id).first()
 
-            if not user.transaction_pin:
-                pin = (message.text or '').strip()
-                if not re.match(r'^\d{4}$', pin):
-                    bot.send_message(
-                        message.chat.id,
-                        "❌ That's not a valid PIN.\n"
-                        "Please send exactly *4 digits* (e.g. 1234):",
-                        parse_mode="Markdown"
-                    )
-                    if not user.pin_pending:
-                        user.pin_pending = True
-                        db.session.commit()
-                    return
+        # Unknown user — ask them to /start
+        if not user:
+            bot.send_message(message.chat.id,
+                             "Please send /start to create your account first.")
+            return
 
-                user.set_pin(pin)
-                user.pin_pending = False
-                db.session.commit()
+        # User has no PIN yet (pin_pending may or may not be set — we check transaction_pin)
+        if not user.transaction_pin:
+            pin = (message.text or '').strip()
+            if not re.match(r'^\d{4}$', pin):
                 bot.send_message(
                     message.chat.id,
-                    "✅ *PIN set successfully!*\n\n"
-                    "You can now open your dashboard and start using VTMoo.",
+                    "❌ That's not a valid PIN.\n"
+                    "Please send exactly *4 digits* (e.g. 1234):",
                     parse_mode="Markdown"
                 )
-                send_dashboard_link(message.chat.id)
+                # Make sure pin_pending is set so next message is also caught
+                if not user.pin_pending:
+                    user.pin_pending = True
+                    db.session.commit()
                 return
 
+            # Valid 4-digit PIN
+            user.set_pin(pin)
+            user.pin_pending = False
+            db.session.commit()
+            bot.send_message(
+                message.chat.id,
+                "✅ *PIN set successfully!*\n\n"
+                "You can now open your dashboard and start using VTMoo.",
+                parse_mode="Markdown"
+            )
             send_dashboard_link(message.chat.id)
-    except Exception as e:
-        app.logger.exception(f"[handle_any_text] error: {e}")
-        bot.send_message(message.chat.id, "⚠️ Something went wrong. Please try again.")
+            return
+
+        # User has a PIN — any random text just gets a nudge to use the dashboard
+        send_dashboard_link(message.chat.id)
 
 
 # ===================== FLASK ROUTES =====================
@@ -702,7 +647,10 @@ def perks():
     application = PerkApplication.query.filter_by(telegram_id=user.telegram_id)\
         .order_by(PerkApplication.created_at.desc()).first()
 
+    # Load perks settings so the user page knows if applications are open
     settings = PerksSettings.get()
+
+    # Count active student members to compute spots remaining
     active_members_count = User.query.filter_by(user_type='student').count()
     spots_remaining = max(0, settings.total_spots - active_members_count)
 
@@ -712,6 +660,7 @@ def perks():
             user=user,
             perk_status=application.status if application else None,
             perk_rejection_reason=application.rejection_reason if application else None,
+            # Settings passed to template
             apps_open=settings.applications_open,
             allow_applications=settings.allow_applications,
             show_spots=settings.show_spots,
@@ -940,10 +889,12 @@ def apply_for_perks():
     if not school or not matric_number or not level:
         return jsonify(success=False, message="Please fill in all fields."), 400
 
+    # Check if applications are currently open/allowed
     settings = PerksSettings.get()
     if not settings.applications_open or not settings.allow_applications:
         return jsonify(success=False, message="Applications are currently closed. Please check back later."), 403
 
+    # Check spots
     active_count = User.query.filter_by(user_type='student').count()
     if active_count >= settings.total_spots:
         return jsonify(success=False, message="All available spots have been filled. Applications are no longer being accepted at this time."), 403
@@ -1132,6 +1083,7 @@ def wallet_check_pending():
         return jsonify(success=False, message="User not found"), 404
 
     references_to_check = []
+
     if reference:
         references_to_check.append(reference)
 
@@ -1158,10 +1110,15 @@ def wallet_check_pending():
             continue
         ok, msg, updated_user = credit_wallet_for_reference(ref, pdata)
         if ok and updated_user:
-            app.logger.info(f"check-pending credited ref={ref!r} for telegram_id={telegram_id}")
-            return jsonify(success=True, credited=True,
-                           balance=round(updated_user.balance, 2),
-                           message="Wallet funded successfully!")
+            app.logger.info(
+                f"check-pending credited ref={ref!r} for telegram_id={telegram_id}"
+            )
+            return jsonify(
+                success=True,
+                credited=True,
+                balance=round(updated_user.balance, 2),
+                message="Wallet funded successfully!"
+            )
 
     return jsonify(success=True, credited=False,
                    balance=round(user.balance, 2),
@@ -1228,6 +1185,7 @@ def payment_callback():
 @admin_required
 def admin_api_perks_settings_get():
     s = PerksSettings.get()
+    # Also compute live counts
     active_members = User.query.filter_by(user_type='student').count()
     pending_apps   = PerkApplication.query.filter_by(status='pending').count()
     return jsonify(success=True, settings={
@@ -1252,6 +1210,7 @@ def admin_api_perks_settings_save():
     s.allow_applications = bool(data.get('allow_applications', s.allow_applications))
     s.updated_at         = datetime.utcnow()
     db.session.commit()
+    # Return updated counts
     active_members = User.query.filter_by(user_type='student').count()
     return jsonify(success=True, message='Settings saved.', settings={
         'applications_open':  s.applications_open,
@@ -1356,8 +1315,8 @@ def admin_api_perks_reject():
 @app.route('/admin/api/perks/applications/bulk-approve', methods=['POST'])
 @admin_required
 def admin_api_perks_bulk_approve():
-    data       = request.get_json(silent=True) or {}
-    ids        = data.get('application_ids', [])
+    data    = request.get_json(silent=True) or {}
+    ids     = data.get('application_ids', [])
     if not ids:
         return jsonify(success=False, message='No application IDs provided.'), 400
 
@@ -1733,81 +1692,27 @@ def run_migrations():
 with app.app_context():
     db.create_all()
     run_migrations()
-    register_bot_commands()
     print("✅ vtmoo Database tables created successfully!")
 
 
-# ===================== WEBHOOK — replaces polling entirely =====================
-# Polling causes Error 409 (conflict) on gunicorn because the module is loaded
-# in both the master process and each worker. Webhooks have none of that — 
-# Telegram POSTs updates to our URL and we handle them synchronously. One route,
-# zero threads, zero conflicts.
-
-WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
-WEBHOOK_URL  = f"{PUBLIC_URL}{WEBHOOK_PATH}"
+def run_bot():
+    print("🤖 Telegram Bot is Running...")
+    bot.infinity_polling()
 
 
-@app.route(WEBHOOK_PATH, methods=['POST'])
-def telegram_webhook():
-    """Receive updates pushed by Telegram and hand them to pyTelegramBotAPI."""
-    app.logger.info(f"Webhook hit: content-type={request.headers.get('content-type')}")
-    if request.headers.get('content-type') == 'application/json':
-        json_string = request.get_data(as_text=True)
-        app.logger.info(f"Webhook payload: {json_string[:200]}")
-        try:
-            update = telebot.types.Update.de_json(json_string)
-            bot.process_new_updates([update])
-        except Exception as e:
-            app.logger.exception(f"Webhook processing error: {e}")
-        return '', 200
-    return 'Bad Request', 400
+bot_thread = threading.Thread(target=run_bot)
+bot_thread.daemon = True
+bot_thread.start()
 
-
-@app.route('/webhook-info')
-def webhook_info():
-    """Debug route — shows current webhook status from Telegram."""
-    try:
-        info = bot.get_webhook_info()
-        return jsonify({
-            'url': info.url,
-            'has_custom_certificate': info.has_custom_certificate,
-            'pending_update_count': info.pending_update_count,
-            'last_error_date': info.last_error_date,
-            'last_error_message': info.last_error_message,
-            'max_connections': info.max_connections,
-            'expected_url': WEBHOOK_URL,
-            'match': info.url == WEBHOOK_URL,
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-def setup_webhook():
-    """Tell Telegram to send updates to our URL. Called once at startup."""
-    try:
-        bot.delete_webhook(drop_pending_updates=True)
-        result = bot.set_webhook(url=WEBHOOK_URL)
-        if result:
-            print(f"✅ Webhook set: {WEBHOOK_URL}")
-        else:
-            print(f"⚠️  Webhook set returned False — check BOT_TOKEN and PUBLIC_URL")
-        # Log current webhook info for confirmation
-        info = bot.get_webhook_info()
-        print(f"✅ Webhook confirmed at Telegram: {info.url}")
-    except Exception as e:
-        print(f"⚠️  Could not set webhook: {e}")
-
-
-with app.app_context():
-    setup_webhook()
 
 
 # ===================== HEALTH CHECK =====================
 @app.route('/health')
 def health_check():
+    """Lightweight endpoint used by the keep-alive thread (and uptime monitors)."""
     return 'ok', 200
 
 
 if __name__ == '__main__':
-    print("🚀 Flask + Telegram Bot Started (webhook mode)!")
+    print("🚀 Flask + Telegram Bot Started!")
     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
