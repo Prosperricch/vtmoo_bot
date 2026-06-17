@@ -29,7 +29,7 @@ db = SQLAlchemy(app)
 
 # ===================== CONFIG =====================
 BOT_TOKEN      = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
-PUBLIC_URL     = os.environ.get('PUBLIC_URL', 'https://vtmoo-bot.onrender.com')
+PUBLIC_URL     = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
 
 # ===================== CHANNEL CONFIG =====================
@@ -49,11 +49,14 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 
 # ===================== KEEP-ALIVE =====================
+# Webhook mode: Telegram itself provides regular traffic so the free-tier
+# instance stays warm. A lightweight self-ping is kept as a fallback for
+# quiet periods (no messages for 14+ minutes).
 def _keep_alive():
-    time.sleep(30)
+    time.sleep(60)
     while True:
         try:
-            if PUBLIC_URL and 'vtmoo-bot' not in PUBLIC_URL:
+            if PUBLIC_URL and 'your-app-name' not in PUBLIC_URL:
                 requests.get(f"{PUBLIC_URL}/health", timeout=10)
         except Exception:
             pass
@@ -1710,46 +1713,44 @@ with app.app_context():
     print("✅ vtmoo Database tables created successfully!")
 
 
-def run_bot():
-    print("🤖 Telegram Bot is Running...")
-    bot.infinity_polling(none_stop=True, interval=0, timeout=20)
+# ===================== WEBHOOK — replaces polling entirely =====================
+# Polling causes Error 409 (conflict) on gunicorn because the module is loaded
+# in both the master process and each worker. Webhooks have none of that — 
+# Telegram POSTs updates to our URL and we handle them synchronously. One route,
+# zero threads, zero conflicts.
+
+WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
+WEBHOOK_URL  = f"{PUBLIC_URL}{WEBHOOK_PATH}"
 
 
-def start_bot_thread():
-    """Start the polling thread exactly once per process."""
-    t = threading.Thread(target=run_bot, name='bot-polling', daemon=True)
-    t.start()
+@app.route(WEBHOOK_PATH, methods=['POST'])
+def telegram_webhook():
+    """Receive updates pushed by Telegram and hand them to pyTelegramBotAPI."""
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data(as_text=True)
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return '', 200
+    return 'Bad Request', 400
 
 
-# ── Gunicorn worker hook ──────────────────────────────────────────────
-# When gunicorn forks a worker it calls post_fork in gunicorn config, but
-# the simplest portable approach is the 'werkzeug' / os.environ guard below:
-# only the FIRST call in a given worker process actually starts the thread.
-_BOT_STARTED = False
+def setup_webhook():
+    """Tell Telegram to send updates to our URL. Called once at startup."""
+    try:
+        # First delete any existing webhook / pending polling sessions
+        bot.delete_webhook(drop_pending_updates=True)
+        # Register the new webhook
+        result = bot.set_webhook(url=WEBHOOK_URL)
+        if result:
+            print(f"✅ Webhook set: {WEBHOOK_URL}")
+        else:
+            print(f"⚠️  Webhook set returned False — check BOT_TOKEN and PUBLIC_URL")
+    except Exception as e:
+        print(f"⚠️  Could not set webhook: {e}")
 
-def _ensure_bot_started():
-    global _BOT_STARTED
-    if not _BOT_STARTED:
-        _BOT_STARTED = True
-        start_bot_thread()
 
-# Register as a gunicorn post_fork hook if running under gunicorn,
-# otherwise start immediately (local dev / __main__).
-try:
-    from gunicorn.arbiter import Arbiter  # noqa: F401 — just checking if gunicorn is present
-
-    # gunicorn imports app at master level then forks workers.
-    # We hook into the WSGI app's first real request instead of module load,
-    # using Flask's before_request to fire once per worker process.
-    @app.before_request
-    def _start_bot_on_first_request():
-        _ensure_bot_started()
-        # Remove ourselves after first call so we don't run on every request
-        app.before_request_funcs[None].remove(_start_bot_on_first_request)
-
-except ImportError:
-    # Not running under gunicorn — start immediately
-    start_bot_thread()
+with app.app_context():
+    setup_webhook()
 
 
 # ===================== HEALTH CHECK =====================
@@ -1759,5 +1760,5 @@ def health_check():
 
 
 if __name__ == '__main__':
-    print("🚀 Flasks + Telegram Bot Started!")
+    print("🚀 Flask + Telegram Bot Started (webhook mode)!")
     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
