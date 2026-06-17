@@ -49,18 +49,19 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 
 # ===================== KEEP-ALIVE =====================
-# Webhook mode: Telegram itself provides regular traffic so the free-tier
-# instance stays warm. A lightweight self-ping is kept as a fallback for
-# quiet periods (no messages for 14+ minutes).
+# Pings /health every 4 minutes so the free Render instance never sleeps.
+# Render spins down after 15 minutes of inactivity — 4 min interval is safe.
+# This is critical for webhooks: if the instance is asleep when Telegram
+# delivers an update, Telegram waits ~5s then gives up and retries later.
 def _keep_alive():
-    time.sleep(60)
+    time.sleep(30)   # wait for server to fully start
     while True:
         try:
             if PUBLIC_URL and 'your-app-name' not in PUBLIC_URL:
                 requests.get(f"{PUBLIC_URL}/health", timeout=10)
         except Exception:
             pass
-        time.sleep(840)
+        time.sleep(240)  # every 4 minutes
 
 _keep_alive_thread = threading.Thread(target=_keep_alive, name='keep-alive', daemon=True)
 _keep_alive_thread.start()
@@ -1726,25 +1727,50 @@ WEBHOOK_URL  = f"{PUBLIC_URL}{WEBHOOK_PATH}"
 @app.route(WEBHOOK_PATH, methods=['POST'])
 def telegram_webhook():
     """Receive updates pushed by Telegram and hand them to pyTelegramBotAPI."""
+    app.logger.info(f"Webhook hit: content-type={request.headers.get('content-type')}")
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data(as_text=True)
-        update = telebot.types.Update.de_json(json_string)
-        bot.process_new_updates([update])
+        app.logger.info(f"Webhook payload: {json_string[:200]}")
+        try:
+            update = telebot.types.Update.de_json(json_string)
+            bot.process_new_updates([update])
+        except Exception as e:
+            app.logger.exception(f"Webhook processing error: {e}")
         return '', 200
     return 'Bad Request', 400
+
+
+@app.route('/webhook-info')
+def webhook_info():
+    """Debug route — shows current webhook status from Telegram."""
+    try:
+        info = bot.get_webhook_info()
+        return jsonify({
+            'url': info.url,
+            'has_custom_certificate': info.has_custom_certificate,
+            'pending_update_count': info.pending_update_count,
+            'last_error_date': info.last_error_date,
+            'last_error_message': info.last_error_message,
+            'max_connections': info.max_connections,
+            'expected_url': WEBHOOK_URL,
+            'match': info.url == WEBHOOK_URL,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 def setup_webhook():
     """Tell Telegram to send updates to our URL. Called once at startup."""
     try:
-        # First delete any existing webhook / pending polling sessions
         bot.delete_webhook(drop_pending_updates=True)
-        # Register the new webhook
         result = bot.set_webhook(url=WEBHOOK_URL)
         if result:
             print(f"✅ Webhook set: {WEBHOOK_URL}")
         else:
             print(f"⚠️  Webhook set returned False — check BOT_TOKEN and PUBLIC_URL")
+        # Log current webhook info for confirmation
+        info = bot.get_webhook_info()
+        print(f"✅ Webhook confirmed at Telegram: {info.url}")
     except Exception as e:
         print(f"⚠️  Could not set webhook: {e}")
 
