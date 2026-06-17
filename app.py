@@ -29,7 +29,7 @@ db = SQLAlchemy(app)
 
 # ===================== CONFIG =====================
 BOT_TOKEN      = os.environ.get('BOT_TOKEN', "8828586999:AAH2o_6ch_Il3vw563UuOn3zrT2uA3IMplY")
-PUBLIC_URL     = os.environ.get('PUBLIC_URL', 'https://your-app-name.onrender.com')
+PUBLIC_URL     = os.environ.get('PUBLIC_URL', 'https://vtmoo-bot.onrender.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme')
 
 # ===================== CHANNEL CONFIG =====================
@@ -53,7 +53,7 @@ def _keep_alive():
     time.sleep(30)
     while True:
         try:
-            if PUBLIC_URL and 'your-app-name' not in PUBLIC_URL:
+            if PUBLIC_URL and 'vtmoo-bot' not in PUBLIC_URL:
                 requests.get(f"{PUBLIC_URL}/health", timeout=10)
         except Exception:
             pass
